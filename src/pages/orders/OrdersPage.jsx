@@ -1,0 +1,92 @@
+import React, { useEffect, useState } from "react";
+import { Calendar, dateFnsLocalizer } from "react-big-calendar";
+import format from "date-fns/format";
+import parse from "date-fns/parse";
+import startOfWeek from "date-fns/startOfWeek";
+import getDay from "date-fns/getDay";
+import enUS from "date-fns/locale/en-US";
+import "react-big-calendar/lib/css/react-big-calendar.css";
+import axios from "axios";
+import Sidebar from "../../components/common/Sidebar";
+
+// Localizador de fechas
+const locales = { "en-US": enUS };
+const localizer = dateFnsLocalizer({
+  format,
+  parse,
+  startOfWeek,
+  getDay,
+  locales,
+});
+
+const OrdersPage = () => {
+  const [events, setEvents] = useState([]);
+
+  useEffect(() => {
+    const fetchPedidos = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        window.location.href = "/login";
+        return;
+      }
+
+      try {
+        const res = await axios.get(
+          "http://localhost:5050/api/eventos/listar",
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        const calendarEvents = Array.isArray(res.data)
+          ? res.data.map((event) => ({
+              title: event.nombreCliente || "Unnamed Order",
+              start: new Date(event.fechaEvento),
+              end: new Date(event.fechaEvento),
+              allDay: true,
+            }))
+          : [];
+
+        setEvents(calendarEvents);
+      } catch (err) {
+        console.error("Error fetching events:", err);
+      }
+    };
+
+    fetchPedidos();
+  }, []);
+
+  return (
+    <div style={{ display: "flex" }}>
+      <Sidebar />
+      <div style={{ flex: 1, padding: "1rem", marginLeft: "250px" }}>
+        <h2>Calendario de Pedidos</h2>
+        <button
+          onClick={() => (window.location.href = "/crear-evento")}
+          style={{
+            padding: "0.5rem 1rem",
+            backgroundColor: "#007bff",
+            color: "white",
+            border: "none",
+            borderRadius: "5px",
+            marginBottom: "1rem",
+            cursor: "pointer",
+          }}
+        >
+          Crear nuevo pedido
+        </button>
+        <div style={{ height: 600 }}>
+          <Calendar
+            localizer={localizer}
+            events={events}
+            startAccessor="start"
+            endAccessor="end"
+            style={{ height: "100%" }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default OrdersPage;

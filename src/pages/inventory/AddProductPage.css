@@ -1,0 +1,18 @@
+.add-product-page {
+  padding: 2rem;
+  max-width: 600px;
+  margin: auto;
+}
+
+.add-product-page form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.add-product-page input,
+.add-product-page textarea,
+.add-product-page button {
+  padding: 0.5rem;
+  font-size: 1rem;
+}

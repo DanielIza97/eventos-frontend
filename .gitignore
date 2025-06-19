@@ -1,0 +1,31 @@
+# Dependencies
+/node_modules
+
+# Builds
+/build
+/dist
+
+# Environment variables
+.env
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor configs
+.vscode/
+.idea/
+.DS_Store
+
+# Coverage files
+coverage/
+
+# Mac system files
+*.DS_Store
+
+# React specific
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
