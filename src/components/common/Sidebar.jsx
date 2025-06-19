@@ -16,7 +16,6 @@ const Sidebar = () => {
     <div className="sidebar">
       <h2>Vajillas Selva Alegre</h2>
 
-      {/* Perfil del usuario */}
       <div className="user-profile">
         <p>
           <strong>{user?.nombre || "Invitado"}</strong>

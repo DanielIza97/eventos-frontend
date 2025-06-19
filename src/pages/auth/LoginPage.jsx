@@ -1,7 +1,7 @@
 import React, { useState, useContext } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
+import API from "../../services/api";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
@@ -12,10 +12,10 @@ const LoginPage = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post(
-        `${process.env.REACT_APP_API_URL}/auth/login`,
-        { email, password }
-      );
+      const response = await API.post("/auth/login", {
+        email,
+        password,
+      });
       const { token, user } = response.data;
 
       login(token, user);

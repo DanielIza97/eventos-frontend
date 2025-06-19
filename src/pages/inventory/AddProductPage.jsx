@@ -1,14 +1,13 @@
-// src/pages/inventory/AddProductPage.jsx
 import React, { useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import "./AddProductPage.css";
+import API from "../../services/api";
 
 const AddProductPage = () => {
   const [nombre, setNombre] = useState("");
   const [descripcion, setDescripcion] = useState("");
-  const [cantidadDisponible, setCantidadDisponible] = useState(0);
-  const [precioUnitario, setPrecioUnitario] = useState(0);
+  const [cantidadDisponible, setCantidadDisponible] = useState("");
+  const [precioUnitario, setPrecioUnitario] = useState("");
   const [imagenes, setImagenes] = useState([]);
   const navigate = useNavigate();
 
@@ -26,11 +25,11 @@ const AddProductPage = () => {
       const formData = new FormData();
       formData.append("nombre", nombre);
       formData.append("descripcion", descripcion);
-      formData.append("cantidadDisponible", cantidadDisponible);
-      formData.append("precioUnitario", precioUnitario);
+      formData.append("cantidadDisponible", Number(cantidadDisponible));
+      formData.append("precioUnitario", Number(precioUnitario));
       imagenes.forEach((img) => formData.append("imagenes", img));
 
-      await axios.post(`${process.env.REACT_APP_API_URL}/productos`, formData, {
+      await API.post("/productos", formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
@@ -67,6 +66,7 @@ const AddProductPage = () => {
           value={cantidadDisponible}
           onChange={(e) => setCantidadDisponible(e.target.value)}
           required
+          min="0"
         />
         <input
           type="number"
@@ -74,6 +74,8 @@ const AddProductPage = () => {
           value={precioUnitario}
           onChange={(e) => setPrecioUnitario(e.target.value)}
           required
+          min="0"
+          step="0.01"
         />
         <input
           type="file"

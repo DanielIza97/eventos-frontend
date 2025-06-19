@@ -1,36 +1,30 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import API from "../../services/api";
 import "./InventoryPage.css";
 
 const InventoryPage = () => {
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
 
-  const fetchProducts = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const res = await axios.get(
-        `${process.env.REACT_APP_API_URL}/productos`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setProducts(res.data);
-    } catch (error) {
-      console.error("Error fetching products:", error);
-    }
-  };
-
   useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const res = await API.get("/productos");
+        setProducts(res.data);
+      } catch (error) {
+        console.error("Error fetching products:", error);
+      }
+    };
+
     fetchProducts();
   }, []);
 
   return (
     <div className="inventory-page">
-      <h2>Inventory</h2>
-      <button onClick={() => navigate("/inventory/add")}>
-        Add New Product
+      <h2>Inventario</h2>
+      <button className="add-button" onClick={() => navigate("/inventory/add")}>
+        Agregar nuevo producto
       </button>
       <div className="inventory-grid">
         {products.map((product) => (
@@ -44,10 +38,10 @@ const InventoryPage = () => {
             <h3>{product.nombre}</h3>
             <p>{product.descripcion}</p>
             <p>
-              <strong>Available:</strong> {product.cantidadDisponible}
+              <strong>Disponible:</strong> {product.cantidadDisponible}
             </p>
             <p>
-              <strong>Price:</strong> ${product.precioUnitario.toFixed(2)}
+              <strong>Precio:</strong> ${product.precioUnitario.toFixed(2)}
             </p>
           </div>
         ))}

@@ -1,41 +1,50 @@
-import React, { createContext, useState } from 'react';
+// src/context/AuthContext.js
+import React, { createContext, useEffect, useState } from "react";
+import { isTokenExpired } from "../utils/auth";
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const storedToken = localStorage.getItem('token');
+  const [token, setToken] = useState(null);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Guardamos el string crudo para el usuario
-  const storedUserString = localStorage.getItem('user');
+  useEffect(() => {
+    const storedToken = localStorage.getItem("token");
+    const storedUser = localStorage.getItem("user");
 
-  // Intentamos parsear el usuario, pero protegemos el error
-  let storedUser = null;
-  try {
-    storedUser = storedUserString ? JSON.parse(storedUserString) : null;
-  } catch (e) {
-    console.warn('Error parsing user from localStorage:', e);
-    storedUser = null;
-  }
-
-  const [token, setToken] = useState(storedToken || null);
-  const [user, setUser] = useState(storedUser);
+    try {
+      const parsedUser = storedUser ? JSON.parse(storedUser) : null;
+      if (storedToken && parsedUser && !isTokenExpired(storedToken)) {
+        setToken(storedToken);
+        setUser(parsedUser);
+      } else {
+        logout();
+      }
+    } catch (err) {
+      console.warn("Error parsing auth data:", err);
+      logout();
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const login = (token, user) => {
     setToken(token);
     setUser(user);
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(user));
+    localStorage.setItem("token", token);
+    localStorage.setItem("user", JSON.stringify(user));
   };
 
   const logout = () => {
     setToken(null);
     setUser(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
   };
 
   return (
-    <AuthContext.Provider value={{ token, user, login, logout }}>
+    <AuthContext.Provider value={{ token, user, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );
