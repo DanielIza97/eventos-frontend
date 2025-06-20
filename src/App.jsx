@@ -6,6 +6,7 @@ import OrdersPage from "./pages/orders/OrdersPage";
 import PrivateRoute from "./components/common/PrivateRoute";
 import InventoryPage from "./pages/inventory/InventoryPage";
 import AddProductPage from "./pages/inventory/AddProductPage";
+import EditProductPage from "./pages/inventory/EditProductPage";
 
 function App() {
   return (
@@ -49,6 +50,8 @@ function App() {
             </PrivateRoute>
           }
         />
+
+        <Route path="/inventory/edit/:id" element={<EditProductPage />} />
       </Routes>
     </Router>
   );

@@ -26,6 +26,7 @@ const InventoryPage = () => {
       <button className="add-button" onClick={() => navigate("/inventory/add")}>
         Agregar nuevo producto
       </button>
+      <div style={{ marginBottom: "1rem" }}></div>
       <div className="inventory-grid">
         {products.map((product) => (
           <div key={product._id} className="inventory-card">
@@ -43,6 +44,22 @@ const InventoryPage = () => {
             <p>
               <strong>Precio:</strong> ${product.precioUnitario.toFixed(2)}
             </p>
+
+            <button
+              className="edit-button"
+              onClick={() => navigate(`/inventory/edit/${product._id}`)}
+              style={{
+                marginTop: "0.5rem",
+                padding: "0.4rem 0.8rem",
+                backgroundColor: "#ffc107",
+                border: "none",
+                color: "#000",
+                borderRadius: "5px",
+                cursor: "pointer",
+              }}
+            >
+              Editar
+            </button>
           </div>
         ))}
       </div>

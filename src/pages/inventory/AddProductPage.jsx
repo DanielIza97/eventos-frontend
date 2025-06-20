@@ -20,8 +20,6 @@ const AddProductPage = () => {
     e.preventDefault();
 
     try {
-      const token = localStorage.getItem("token");
-
       const formData = new FormData();
       formData.append("nombre", nombre);
       formData.append("descripcion", descripcion);
@@ -29,12 +27,7 @@ const AddProductPage = () => {
       formData.append("precioUnitario", Number(precioUnitario));
       imagenes.forEach((img) => formData.append("imagenes", img));
 
-      await API.post("/productos", formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      await API.post("/productos", formData);
 
       alert("Producto creado con éxito");
       navigate("/inventory");
