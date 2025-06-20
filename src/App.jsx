@@ -7,6 +7,7 @@ import PrivateRoute from "./components/common/PrivateRoute";
 import InventoryPage from "./pages/inventory/InventoryPage";
 import AddProductPage from "./pages/inventory/AddProductPage";
 import EditProductPage from "./pages/inventory/EditProductPage";
+import EditOrderPage from "./pages/orders/EditOrderPage";
 
 function App() {
   return (
@@ -51,7 +52,23 @@ function App() {
           }
         />
 
-        <Route path="/inventory/edit/:id" element={<EditProductPage />} />
+        <Route
+          path="/inventory/edit/:id"
+          element={
+            <PrivateRoute>
+              <EditProductPage />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/editar-evento/:id"
+          element={
+            <PrivateRoute>
+              <EditOrderPage />
+            </PrivateRoute>
+          }
+        />
       </Routes>
     </Router>
   );

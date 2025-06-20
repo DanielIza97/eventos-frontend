@@ -28,14 +28,26 @@ const OrdersPage = () => {
       try {
         const res = await API.get("/eventos/listar");
 
-        const calendarEvents = Array.isArray(res.data)
-          ? res.data.map((event) => ({
-              title: event.nombreCliente || "Unnamed Order",
-              start: new Date(event.fechaEvento),
-              end: new Date(event.fechaEvento),
+        // Aseguramos que la data sea un arreglo
+        if (!Array.isArray(res.data)) {
+          console.error("La respuesta no es un arreglo:", res.data);
+          setEvents([]);
+          return;
+        }
+
+        // Mapear eventos para el calendario, validando fechas válidas
+        const calendarEvents = res.data
+          .filter((event) => event.fechaEvento) // filtramos sin fecha
+          .map((event) => {
+            const startDate = new Date(event.fechaEvento);
+            return {
+              id: event._id,
+              title: event.nombreCliente || "Pedido sin nombre",
+              start: isNaN(startDate.getTime()) ? new Date() : startDate,
+              end: isNaN(startDate.getTime()) ? new Date() : startDate,
               allDay: true,
-            }))
-          : [];
+            };
+          });
 
         setEvents(calendarEvents);
       } catch (err) {
@@ -47,35 +59,32 @@ const OrdersPage = () => {
   }, []);
 
   return (
-    <div style={{ display: "flex" }}>
+    <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
-      <div style={{ flex: 1, padding: "1rem", marginLeft: "200px" }}>
-        <h2>Calendario de Pedidos</h2>
-        <button
-          onClick={() => navigate("/crear-evento")}
-          style={{
-            padding: "0.5rem 1rem",
-            backgroundColor: "#007bff",
-            color: "white",
-            border: "none",
-            borderRadius: "5px",
-            marginBottom: "1rem",
-            cursor: "pointer",
-          }}
-        >
-          Crear nuevo pedido
-        </button>
+      <main className="flex-1 p-6 ml-64">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-semibold text-gray-800">
+            Calendario de Pedidos
+          </h2>
+          <button
+            onClick={() => navigate("/crear-evento")}
+            className="bg-blue-600 text-white px-4 py-2 rounded-md shadow hover:bg-blue-700 transition-colors"
+          >
+            Crear nuevo pedido
+          </button>
+        </div>
 
-        <div style={{ height: 600 }}>
+        <div className="h-[600px] bg-white rounded-lg shadow-md p-4">
           <Calendar
             localizer={localizer}
             events={events}
             startAccessor="start"
             endAccessor="end"
             style={{ height: "100%" }}
+            onSelectEvent={(event) => navigate(`/editar-evento/${event.id}`)}
           />
         </div>
-      </div>
+      </main>
     </div>
   );
 };

@@ -1,6 +1,5 @@
 import React, { useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import "./Sidebar.css";
 import { AuthContext } from "../../context/AuthContext";
 
 const Sidebar = () => {
@@ -13,33 +12,59 @@ const Sidebar = () => {
   };
 
   return (
-    <div className="sidebar">
-      <h2>Vajillas Selva Alegre</h2>
+    <aside className="fixed top-0 left-0 w-64 h-full bg-white shadow-lg flex flex-col p-6">
+      <h1 className="text-2xl font-extrabold mb-10 text-blue-700 tracking-wide">
+        Vajillas Selva Alegre
+      </h1>
 
-      <div className="user-profile">
-        <p>
-          <strong>{user?.nombre || "Invitado"}</strong>
+      <div className="mb-10 border-b pb-6">
+        <p
+          className="text-lg font-semibold text-gray-900 truncate"
+          title={user?.nombre}
+        >
+          {user?.nombre || "Invitado"}
         </p>
-        <p style={{ fontSize: "0.9em", color: "#888" }}>{user?.email}</p>
-        <p style={{ fontSize: "0.9em", fontStyle: "italic" }}>
-          Rol: {user?.rol}
+        <p className="text-sm text-gray-500 truncate" title={user?.email}>
+          {user?.email}
+        </p>
+        <p className="mt-1 text-sm italic text-gray-400">
+          Rol: {user?.rol || "N/A"}
         </p>
       </div>
 
-      <nav>
-        <ul>
+      <nav className="flex-grow">
+        <ul className="space-y-4">
           <li>
-            <Link to="/orders">Pedidos</Link>
+            <Link
+              to="/orders"
+              className="block px-4 py-3 rounded-lg hover:bg-blue-100 text-gray-700 hover:text-blue-700 font-medium transition-colors"
+            >
+              Pedidos
+            </Link>
           </li>
           <li>
-            <Link to="/inventory">Inventario</Link>
+            <Link
+              to="/inventory"
+              className="block px-4 py-3 rounded-lg hover:bg-blue-100 text-gray-700 hover:text-blue-700 font-medium transition-colors"
+            >
+              Inventario
+            </Link>
           </li>
           <li>
-            <button onClick={handleLogout}>Salir</button>
+            <button
+              onClick={handleLogout}
+              className="w-full text-left px-4 py-3 rounded-lg bg-red-50 text-red-700 font-semibold hover:bg-red-100 transition-colors"
+            >
+              Salir
+            </button>
           </li>
         </ul>
       </nav>
-    </div>
+
+      <footer className="mt-auto text-center text-xs text-gray-400">
+        &copy; {new Date().getFullYear()} Vajillas Selva Alegre
+      </footer>
+    </aside>
   );
 };
 
