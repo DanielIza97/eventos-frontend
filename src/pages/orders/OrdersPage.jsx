@@ -49,7 +49,7 @@ const OrdersPage = () => {
   return (
     <div style={{ display: "flex" }}>
       <Sidebar />
-      <div style={{ flex: 1, padding: "1rem", marginLeft: "250px" }}>
+      <div style={{ flex: 1, padding: "1rem", marginLeft: "200px" }}>
         <h2>Calendario de Pedidos</h2>
         <button
           onClick={() => navigate("/crear-evento")}
