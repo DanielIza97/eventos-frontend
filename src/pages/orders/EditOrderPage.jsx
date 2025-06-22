@@ -11,6 +11,7 @@ const EditOrderPage = () => {
     nombreCliente: "",
     tipoEvento: "pedido",
     fechaEvento: "",
+    horaEvento: "",
     lugar: "",
     estado: "pendiente",
     observaciones: "",
@@ -22,15 +23,23 @@ const EditOrderPage = () => {
       try {
         const res = await API.get(`/eventos/${id}`);
         const data = res.data;
+        const fechaObj = new Date(data.fechaEvento);
+        const fecha = fechaObj.toISOString().substring(0, 10); // YYYY-MM-DD
+        const hh = fechaObj.getHours().toString().padStart(2, "0");
+        const mm = fechaObj.getMinutes().toString().padStart(2, "0");
+        const hora = `${hh}:${mm}`;
+
         setOrder({
           nombreCliente: data.nombreCliente || "",
           tipoEvento: data.tipoEvento || "pedido",
-          fechaEvento: data.fechaEvento?.substring(0, 10) || "",
+          fechaEvento: fecha,
+          horaEvento: hora,
           lugar: data.lugar || "",
           estado: data.estado || "pendiente",
           observaciones: data.observaciones || "",
           productos: data.productos || [],
         });
+
         setLoading(false);
       } catch (err) {
         console.error("Error al obtener el evento:", err);
@@ -44,17 +53,18 @@ const EditOrderPage = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setOrder({ ...order, [name]: value });
+    setOrder((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Crear objeto sólo con los campos que quieres enviar al backend para evitar errores
+    const fechaHoraEvento = new Date(`${order.fechaEvento}T${order.horaEvento}`);
+
     const dataToUpdate = {
       nombreCliente: order.nombreCliente,
       tipoEvento: order.tipoEvento,
-      fechaEvento: order.fechaEvento,
+      fechaEvento: fechaHoraEvento.toISOString(),
       lugar: order.lugar,
       estado: order.estado,
       observaciones: order.observaciones,
@@ -103,16 +113,29 @@ const EditOrderPage = () => {
               </select>
             </div>
 
-            <div>
-              <label className="block text-gray-700">Fecha del Evento</label>
-              <input
-                type="date"
-                name="fechaEvento"
-                value={order.fechaEvento}
-                onChange={handleChange}
-                className="w-full border px-4 py-2 rounded"
-                required
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-gray-700">Fecha del Evento</label>
+                <input
+                  type="date"
+                  name="fechaEvento"
+                  value={order.fechaEvento}
+                  onChange={handleChange}
+                  className="w-full border px-4 py-2 rounded"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-gray-700">Hora del Evento</label>
+                <input
+                  type="time"
+                  name="horaEvento"
+                  value={order.horaEvento}
+                  onChange={handleChange}
+                  className="w-full border px-4 py-2 rounded"
+                  required
+                />
+              </div>
             </div>
 
             <div>

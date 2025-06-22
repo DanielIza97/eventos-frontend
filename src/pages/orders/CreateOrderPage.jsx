@@ -8,6 +8,7 @@ const CreateOrderPage = () => {
 
   const [nombreCliente, setNombreCliente] = useState("");
   const [fechaEvento, setFechaEvento] = useState("");
+  const [horaEvento, setHoraEvento] = useState("");
   const [lugar, setLugar] = useState("");
   const [productosDisponibles, setProductosDisponibles] = useState([]);
   const [items, setItems] = useState([{ productoId: "", cantidad: 1 }]);
@@ -41,10 +42,13 @@ const CreateOrderPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     try {
+      const fechaHoraEvento = new Date(`${fechaEvento}T${horaEvento}`);
+
       const payload = {
         nombreCliente,
-        fechaEvento,
+        fechaEvento: fechaHoraEvento.toISOString(),
         lugar,
         productos: items.map((item) => ({
           productoId: item.productoId,
@@ -83,17 +87,32 @@ const CreateOrderPage = () => {
               />
             </div>
 
-            <div>
-              <label className="block text-gray-700 font-medium mb-1">
-                Fecha del Evento:
-              </label>
-              <input
-                type="date"
-                value={fechaEvento}
-                onChange={(e) => setFechaEvento(e.target.value)}
-                required
-                className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-gray-700 font-medium mb-1">
+                  Fecha del Evento:
+                </label>
+                <input
+                  type="date"
+                  value={fechaEvento}
+                  onChange={(e) => setFechaEvento(e.target.value)}
+                  required
+                  className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-700 font-medium mb-1">
+                  Hora del Evento:
+                </label>
+                <input
+                  type="time"
+                  value={horaEvento}
+                  onChange={(e) => setHoraEvento(e.target.value)}
+                  required
+                  className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
             </div>
 
             <div>

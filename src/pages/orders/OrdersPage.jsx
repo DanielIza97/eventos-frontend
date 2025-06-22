@@ -22,30 +22,37 @@ const localizer = dateFnsLocalizer({
 const OrdersPage = () => {
   const navigate = useNavigate();
   const [events, setEvents] = useState([]);
+  const [calendarView, setCalendarView] = useState("week");
 
   useEffect(() => {
     const fetchPedidos = async () => {
       try {
         const res = await API.get("/eventos/listar");
 
-        // Aseguramos que la data sea un arreglo
         if (!Array.isArray(res.data)) {
           console.error("La respuesta no es un arreglo:", res.data);
           setEvents([]);
           return;
         }
 
-        // Mapear eventos para el calendario, validando fechas válidas
         const calendarEvents = res.data
-          .filter((event) => event.fechaEvento) // filtramos sin fecha
+          .filter((event) => event.fechaEvento)
           .map((event) => {
             const startDate = new Date(event.fechaEvento);
+            const endDate = new Date(startDate);
+            endDate.setHours(startDate.getHours() + 1); // duración de 1 hora
+
+            const hora = startDate.toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+
             return {
               id: event._id,
-              title: event.nombreCliente || "Pedido sin nombre",
-              start: isNaN(startDate.getTime()) ? new Date() : startDate,
-              end: isNaN(startDate.getTime()) ? new Date() : startDate,
-              allDay: true,
+              title: `${hora} - ${event.nombreCliente || "Pedido sin nombre"}`,
+              start: startDate,
+              end: endDate,
+              allDay: false,
             };
           });
 
@@ -81,6 +88,16 @@ const OrdersPage = () => {
             startAccessor="start"
             endAccessor="end"
             style={{ height: "100%" }}
+            views={["month", "week", "day"]}
+            view={calendarView} // ← vista actual
+            onView={(view) => setCalendarView(view)} // ← actualizar vista
+            defaultView="month"
+            tooltipAccessor={(event) =>
+              `Cliente: ${event.title}\nHora: ${new Date(event.start).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}`
+            }
             onSelectEvent={(event) => navigate(`/editar-evento/${event.id}`)}
           />
         </div>
