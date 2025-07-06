@@ -4,9 +4,9 @@ import LoginPage from "./pages/auth/LoginPage";
 import CreateEventPage from "./pages/orders/CreateOrderPage";
 import OrdersPage from "./pages/orders/OrdersPage";
 import PrivateRoute from "./components/common/PrivateRoute";
-import InventoryPage from "./pages/inventory/InventoryPage";
-import AddProductPage from "./pages/inventory/AddProductPage";
-import EditProductPage from "./pages/inventory/EditProductPage";
+import ProductPage from "./pages/products/ProductPage"; // Renombrado desde InventoryPage
+import AddProductPage from "./pages/products/AddProductPage";
+import EditProductPage from "./pages/products/EditProductPage";
 import EditOrderPage from "./pages/orders/EditOrderPage";
 
 function App() {
@@ -35,16 +35,16 @@ function App() {
         />
 
         <Route
-          path="/inventory"
+          path="/products"
           element={
             <PrivateRoute>
-              <InventoryPage />
+              <ProductPage />
             </PrivateRoute>
           }
         />
 
         <Route
-          path="/inventory/add"
+          path="/products/add"
           element={
             <PrivateRoute>
               <AddProductPage />
@@ -53,7 +53,7 @@ function App() {
         />
 
         <Route
-          path="/inventory/edit/:id"
+          path="/products/edit/:id"
           element={
             <PrivateRoute>
               <EditProductPage />

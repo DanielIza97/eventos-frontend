@@ -44,10 +44,10 @@ const Sidebar = () => {
           </li>
           <li>
             <Link
-              to="/inventory"
+              to="/products"
               className="block px-4 py-3 rounded-lg hover:bg-blue-100 text-gray-700 hover:text-blue-700 font-medium transition-colors"
             >
-              Inventario
+              Productos
             </Link>
           </li>
           <li>

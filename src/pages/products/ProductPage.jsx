@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import API from "../../services/api";
 import Sidebar from "../../components/common/Sidebar";
 
-const InventoryPage = () => {
+const ProductPage = () => {
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
 
@@ -27,7 +27,7 @@ const InventoryPage = () => {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-semibold text-gray-800">Inventario</h2>
           <button
-            onClick={() => navigate("/inventory/add")}
+            onClick={() => navigate("/products/add")}
             className="bg-green-600 text-white px-4 py-2 rounded-md shadow hover:bg-green-700 transition-colors"
           >
             Agregar nuevo producto
@@ -63,7 +63,7 @@ const InventoryPage = () => {
                   <strong>Precio:</strong> ${product.precioUnitario.toFixed(2)}
                 </p>
                 <button
-                  onClick={() => navigate(`/inventory/edit/${product._id}`)}
+                  onClick={() => navigate(`/products/edit/${product._id}`)}
                   className="mt-4 bg-yellow-400 text-black py-2 rounded hover:bg-yellow-500 transition-colors"
                 >
                   Editar
@@ -77,4 +77,4 @@ const InventoryPage = () => {
   );
 };
 
-export default InventoryPage;
+export default ProductPage;
