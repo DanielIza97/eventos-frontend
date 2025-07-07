@@ -35,42 +35,52 @@ const ProductPage = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {products.map((product) => (
-            <div
-              key={product._id}
-              className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col max-w-xs"
-            >
-              {product.imagenes?.length > 0 && (
-                <div className="w-full h-40 overflow-hidden rounded-t-lg bg-gray-200 flex items-center justify-center">
-                  <img
-                    src={`${process.env.REACT_APP_UPLOADS_URL}/${product.imagenes[0]}`}
-                    alt={product.nombre}
-                    className="max-w-full max-h-full object-contain"
-                    style={{ maxHeight: "160px", maxWidth: "100%" }}
-                  />
-                </div>
-              )}
+          {products.map((product) => {
+            const imgPath =
+              product.imagenes?.[0] && typeof product.imagenes[0] === "string"
+                ? product.imagenes[0].replace(/^uploads\//, "")
+                : null;
 
-              <div className="p-4 flex-grow flex flex-col">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  {product.nombre}
-                </h3>
-                <p className="text-gray-700 flex-grow">{product.descripcion}</p>
-                <p className="mt-2 text-gray-600">
-                  <strong>Disponible:</strong> {product.cantidadDisponible}
-                </p>
-                <p className="text-gray-600">
-                  <strong>Precio:</strong> ${product.precioUnitario.toFixed(2)}
-                </p>
-                <button
-                  onClick={() => navigate(`/products/edit/${product._id}`)}
-                  className="mt-4 bg-yellow-400 text-black py-2 rounded hover:bg-yellow-500 transition-colors"
-                >
-                  Editar
-                </button>
+            return (
+              <div
+                key={product._id}
+                className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col max-w-xs"
+              >
+                {imgPath && (
+                  <div className="w-full h-40 overflow-hidden rounded-t-lg bg-gray-200 flex items-center justify-center">
+                    <img
+                      src={`${process.env.REACT_APP_UPLOADS_URL}/${imgPath}`}
+                      alt={product.nombre}
+                      className="max-w-full max-h-full object-contain"
+                      style={{ maxHeight: "160px", maxWidth: "100%" }}
+                    />
+                  </div>
+                )}
+
+                <div className="p-4 flex-grow flex flex-col">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    {product.nombre}
+                  </h3>
+                  <p className="text-gray-700 flex-grow">{product.descripcion}</p>
+                  <p className="mt-2 text-gray-600">
+                    <strong>Disponible:</strong> {product.cantidadDisponible}
+                  </p>
+                  <p className="text-gray-600">
+                    <strong>Costo alquiler:</strong>{" "}
+                    {typeof product.costoAlquiler === "number"
+                      ? `$${product.costoAlquiler.toFixed(2)}`
+                      : "N/A"}
+                  </p>
+                  <button
+                    onClick={() => navigate(`/products/edit/${product._id}`)}
+                    className="mt-4 bg-yellow-400 text-black py-2 rounded hover:bg-yellow-500 transition-colors"
+                  >
+                    Editar
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </main>
     </div>

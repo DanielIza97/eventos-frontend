@@ -45,7 +45,7 @@ eventos-frontend/
 ├── src/
 │   ├── components/     # Componentes reutilizables
 │   ├── context/        # Contextos (e.g. AuthContext)
-│   ├── pages/          # Páginas principales (Orders, Inventory, Login, etc.)
+│   ├── pages/          # Páginas principales (Orders, Login, etc.)
 │   ├── services/          # Servicios
 │   ├── App.jsx         # Componente raíz
 │   └── index.js        # Entrada principal

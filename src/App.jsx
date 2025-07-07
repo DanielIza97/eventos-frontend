@@ -4,7 +4,7 @@ import LoginPage from "./pages/auth/LoginPage";
 import CreateEventPage from "./pages/orders/CreateOrderPage";
 import OrdersPage from "./pages/orders/OrdersPage";
 import PrivateRoute from "./components/common/PrivateRoute";
-import ProductPage from "./pages/products/ProductPage"; // Renombrado desde InventoryPage
+import ProductPage from "./pages/products/ProductPage";
 import AddProductPage from "./pages/products/AddProductPage";
 import EditProductPage from "./pages/products/EditProductPage";
 import EditOrderPage from "./pages/orders/EditOrderPage";

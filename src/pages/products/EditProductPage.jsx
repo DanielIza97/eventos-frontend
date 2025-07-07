@@ -11,7 +11,8 @@ const EditProductPage = () => {
     nombre: "",
     descripcion: "",
     cantidadDisponible: 0,
-    precioUnitario: 0,
+    costoCompra: 0,
+    costoAlquiler: 0,
     imagenes: [],
   });
 
@@ -22,7 +23,13 @@ const EditProductPage = () => {
     const fetchProduct = async () => {
       try {
         const res = await API.get(`/productos/${id}`);
-        setProduct(res.data);
+        setProduct({
+          ...res.data,
+          cantidadDisponible: Number(res.data.cantidadDisponible) || 0,
+          costoCompra: Number(res.data.costoCompra) || 0,
+          costoAlquiler: Number(res.data.costoAlquiler) || 0,
+          imagenes: res.data.imagenes || [],
+        });
       } catch (err) {
         console.error("Error al cargar el producto:", err);
       }
@@ -32,7 +39,16 @@ const EditProductPage = () => {
   }, [id]);
 
   const handleChange = (e) => {
-    setProduct({ ...product, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    if (
+      name === "cantidadDisponible" ||
+      name === "costoCompra" ||
+      name === "costoAlquiler"
+    ) {
+      setProduct({ ...product, [name]: Number(value) });
+    } else {
+      setProduct({ ...product, [name]: value });
+    }
   };
 
   const handleImageChange = (e) => {
@@ -56,7 +72,8 @@ const EditProductPage = () => {
       formData.append("nombre", product.nombre);
       formData.append("descripcion", product.descripcion);
       formData.append("cantidadDisponible", product.cantidadDisponible);
-      formData.append("precioUnitario", product.precioUnitario);
+      formData.append("costoCompra", product.costoCompra);
+      formData.append("costoAlquiler", product.costoAlquiler);
 
       newImages.forEach((img) => {
         formData.append("imagenes", img);
@@ -70,7 +87,7 @@ const EditProductPage = () => {
       await API.put(`/productos/${id}`, formData);
 
       alert("Producto actualizado correctamente");
-      navigate("/inventory");
+      navigate("/products");
     } catch (err) {
       console.error("Error actualizando producto:", err);
       alert("Error al actualizar el producto");
@@ -126,7 +143,7 @@ const EditProductPage = () => {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-3 gap-6">
               <div>
                 <label
                   htmlFor="cantidadDisponible"
@@ -147,17 +164,36 @@ const EditProductPage = () => {
 
               <div>
                 <label
-                  htmlFor="precioUnitario"
+                  htmlFor="costoCompra"
                   className="block text-gray-700 font-medium mb-1"
                 >
-                  Precio Unitario:
+                  Costo de Compra:
                 </label>
                 <input
-                  id="precioUnitario"
-                  name="precioUnitario"
+                  id="costoCompra"
+                  name="costoCompra"
                   type="number"
                   step="0.01"
-                  value={product.precioUnitario}
+                  value={product.costoCompra}
+                  onChange={handleChange}
+                  min="0"
+                  className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="costoAlquiler"
+                  className="block text-gray-700 font-medium mb-1"
+                >
+                  Costo de Alquiler:
+                </label>
+                <input
+                  id="costoAlquiler"
+                  name="costoAlquiler"
+                  type="number"
+                  step="0.01"
+                  value={product.costoAlquiler}
                   onChange={handleChange}
                   min="0"
                   className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"

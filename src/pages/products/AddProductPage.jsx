@@ -7,13 +7,21 @@ const AddProductPage = () => {
   const [nombre, setNombre] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [cantidadDisponible, setCantidadDisponible] = useState("");
-  const [precioUnitario, setPrecioUnitario] = useState("");
+  const [costoCompra, setCostoCompra] = useState("");
+  const [costoAlquiler, setCostoAlquiler] = useState("");
   const [imagenes, setImagenes] = useState([]);
+
   const navigate = useNavigate();
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
-    setImagenes(files);
+    // Agrega nuevas imágenes al estado
+    setImagenes((prev) => [...prev, ...files]);
+  };
+
+  // Eliminar imagen seleccionada
+  const eliminarImagen = (index) => {
+    setImagenes((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e) => {
@@ -24,13 +32,14 @@ const AddProductPage = () => {
       formData.append("nombre", nombre);
       formData.append("descripcion", descripcion);
       formData.append("cantidadDisponible", Number(cantidadDisponible));
-      formData.append("precioUnitario", Number(precioUnitario));
+      formData.append("costoCompra", Number(costoCompra));
+      formData.append("costoAlquiler", Number(costoAlquiler));
       imagenes.forEach((img) => formData.append("imagenes", img));
 
       await API.post("/productos", formData);
 
       alert("Producto creado con éxito");
-      navigate("/inventory");
+      navigate("/products");
     } catch (err) {
       console.error("Error al crear producto:", err);
       alert("Error al crear producto");
@@ -47,26 +56,22 @@ const AddProductPage = () => {
             Agregar nuevo producto
           </h2>
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <input
-                type="text"
-                placeholder="Nombre"
-                value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
-                required
-                className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
+            <input
+              type="text"
+              placeholder="Nombre"
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              required
+              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
 
-            <div>
-              <textarea
-                placeholder="Descripción"
-                value={descripcion}
-                onChange={(e) => setDescripcion(e.target.value)}
-                rows={4}
-                className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-              />
-            </div>
+            <textarea
+              placeholder="Descripción"
+              value={descripcion}
+              onChange={(e) => setDescripcion(e.target.value)}
+              rows={4}
+              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            />
 
             <div className="grid grid-cols-2 gap-6">
               <input
@@ -78,12 +83,21 @@ const AddProductPage = () => {
                 min="0"
                 className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-
               <input
                 type="number"
-                placeholder="Precio unitario"
-                value={precioUnitario}
-                onChange={(e) => setPrecioUnitario(e.target.value)}
+                placeholder="Costo de compra"
+                value={costoCompra}
+                onChange={(e) => setCostoCompra(e.target.value)}
+                required
+                min="0"
+                step="0.01"
+                className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="number"
+                placeholder="Costo de alquiler"
+                value={costoAlquiler}
+                onChange={(e) => setCostoAlquiler(e.target.value)}
                 required
                 min="0"
                 step="0.01"
@@ -100,6 +114,28 @@ const AddProductPage = () => {
                 className="block w-full text-gray-700"
               />
             </div>
+
+            {imagenes.length > 0 && (
+              <div className="flex flex-wrap gap-4 mt-4">
+                {imagenes.map((img, idx) => (
+                  <div key={idx} className="relative w-24 h-24 bg-gray-100 rounded-md border overflow-hidden">
+                    <img
+                      src={URL.createObjectURL(img)}
+                      alt={`preview-${idx}`}
+                      className="w-full h-full object-contain"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => eliminarImagen(idx)}
+                      title="Eliminar imagen"
+                      className="absolute top-0 right-0 w-6 h-6 bg-red-600 text-white rounded-tr-md rounded-bl-md flex items-center justify-center text-sm font-bold hover:opacity-80 transition-opacity"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <button
               type="submit"
