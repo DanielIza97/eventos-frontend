@@ -211,7 +211,10 @@ const EditProductPage = () => {
                   product.imagenes.map((img, i) => (
                     <div key={i} className="relative">
                       <img
-                        src={`${process.env.REACT_APP_UPLOADS_URL}/${img}`}
+                        src={`${process.env.REACT_APP_API_URL.replace(
+                          "/api",
+                          ""
+                        )}/${img}`}
                         alt={`Imagen ${i + 1}`}
                         className={`w-24 h-24 object-contain rounded-md border bg-gray-100 ${
                           imagenesParaEliminar.includes(img)
