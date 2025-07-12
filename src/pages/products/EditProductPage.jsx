@@ -63,6 +63,10 @@ const EditProductPage = () => {
     );
   };
 
+  const removeNewImage = (index) => {
+    setNewImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -110,10 +114,7 @@ const EditProductPage = () => {
           >
             {/* Campos de texto */}
             <div>
-              <label
-                htmlFor="nombre"
-                className="block text-gray-700 font-medium mb-1"
-              >
+              <label htmlFor="nombre" className="block text-gray-700 font-medium mb-1">
                 Nombre:
               </label>
               <input
@@ -127,10 +128,7 @@ const EditProductPage = () => {
             </div>
 
             <div>
-              <label
-                htmlFor="descripcion"
-                className="block text-gray-700 font-medium mb-1"
-              >
+              <label htmlFor="descripcion" className="block text-gray-700 font-medium mb-1">
                 Descripción:
               </label>
               <textarea
@@ -145,10 +143,7 @@ const EditProductPage = () => {
 
             <div className="grid grid-cols-3 gap-6">
               <div>
-                <label
-                  htmlFor="cantidadDisponible"
-                  className="block text-gray-700 font-medium mb-1"
-                >
+                <label htmlFor="cantidadDisponible" className="block text-gray-700 font-medium mb-1">
                   Cantidad Disponible:
                 </label>
                 <input
@@ -163,10 +158,7 @@ const EditProductPage = () => {
               </div>
 
               <div>
-                <label
-                  htmlFor="costoCompra"
-                  className="block text-gray-700 font-medium mb-1"
-                >
+                <label htmlFor="costoCompra" className="block text-gray-700 font-medium mb-1">
                   Costo de Compra:
                 </label>
                 <input
@@ -182,10 +174,7 @@ const EditProductPage = () => {
               </div>
 
               <div>
-                <label
-                  htmlFor="costoAlquiler"
-                  className="block text-gray-700 font-medium mb-1"
-                >
+                <label htmlFor="costoAlquiler" className="block text-gray-700 font-medium mb-1">
                   Costo de Alquiler:
                 </label>
                 <input
@@ -211,10 +200,7 @@ const EditProductPage = () => {
                   product.imagenes.map((img, i) => (
                     <div key={i} className="relative">
                       <img
-                        src={`${process.env.REACT_APP_API_URL.replace(
-                          "/api",
-                          ""
-                        )}/${img}`}
+                        src={`${process.env.REACT_APP_UPLOADS_URL}${img}`}
                         alt={`Imagen ${i + 1}`}
                         className={`w-24 h-24 object-contain rounded-md border bg-gray-100 ${
                           imagenesParaEliminar.includes(img)
@@ -243,12 +229,37 @@ const EditProductPage = () => {
               </div>
             </div>
 
+            {/* Previews de nuevas imágenes cargadas */}
+            {newImages.length > 0 && (
+              <div>
+                <label className="block text-gray-700 font-medium mb-2">
+                  Nuevas imágenes seleccionadas:
+                </label>
+                <div className="flex flex-wrap gap-4 mb-4">
+                  {newImages.map((img, i) => (
+                    <div key={`nuevo-${i}`} className="relative">
+                      <img
+                        src={URL.createObjectURL(img)}
+                        alt={`Nueva imagen ${i + 1}`}
+                        className="w-24 h-24 object-contain rounded-md border bg-gray-100"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeNewImage(i)}
+                        title="Eliminar nueva imagen"
+                        className="absolute top-0 right-0 w-6 h-6 rounded-tr-md rounded-bl-md flex items-center justify-center text-white text-sm font-bold bg-red-600 hover:opacity-80 transition-opacity"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Subir nuevas imágenes */}
             <div>
-              <label
-                htmlFor="imagenes"
-                className="block text-gray-700 font-medium mb-1"
-              >
+              <label htmlFor="imagenes" className="block text-gray-700 font-medium mb-1">
                 Subir nuevas imágenes (opcional):
               </label>
               <input

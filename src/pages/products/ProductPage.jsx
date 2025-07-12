@@ -49,7 +49,7 @@ const ProductPage = () => {
                 {imgPath && (
                   <div className="w-full h-40 overflow-hidden rounded-t-lg bg-gray-200 flex items-center justify-center">
                     <img
-                      src={`${process.env.REACT_APP_UPLOADS_URL}/${imgPath}`}
+                      src={`${process.env.REACT_APP_UPLOADS_URL}${product.imagenes[0]}`}
                       alt={product.nombre}
                       className="max-w-full max-h-full object-contain"
                       style={{ maxHeight: "160px", maxWidth: "100%" }}
