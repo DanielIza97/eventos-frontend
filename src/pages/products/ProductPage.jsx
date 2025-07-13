@@ -5,19 +5,18 @@ import Sidebar from "../../components/common/Sidebar";
 
 const ProductPage = () => {
   const navigate = useNavigate();
-
   const [products, setProducts] = useState([]);
-  const [filteredProducts, setFilteredProducts] = useState([]);
+
   const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [viewMode, setViewMode] = useState("cards"); // "cards" o "table"
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         const res = await API.get("/productos");
         setProducts(res.data);
-        setFilteredProducts(res.data);
       } catch (error) {
         console.error("Error fetching products:", error);
       }
@@ -26,39 +25,53 @@ const ProductPage = () => {
     fetchProducts();
   }, []);
 
-  const handleSearch = (e) => {
-    const value = e.target.value.toLowerCase();
-    setSearchTerm(value);
-    const filtered = products.filter(
-      (product) =>
-        product.nombre.toLowerCase().includes(value) ||
-        (product.descripcion && product.descripcion.toLowerCase().includes(value))
-    );
-    setFilteredProducts(filtered);
-    setCurrentPage(1);
+  // Filtrar productos por búsqueda
+  const filteredProducts = products.filter((product) =>
+    product.nombre.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Calcular total de páginas
+  const totalPages =
+    itemsPerPage === "all"
+      ? 1
+      : Math.ceil(filteredProducts.length / itemsPerPage);
+
+  // Sincronizar currentPage si excede totalPages para evitar re-render infinito
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages || 1);
+    }
+  }, [currentPage, totalPages]);
+
+  // Productos visibles según paginación
+  const displayedProducts =
+    itemsPerPage === "all"
+      ? filteredProducts
+      : filteredProducts.slice(
+          (currentPage - 1) * itemsPerPage,
+          currentPage * itemsPerPage
+        );
+
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(1); // Reiniciar página al buscar
   };
 
   const handleItemsPerPageChange = (e) => {
-    const value = e.target.value;
-    if (value === "all") {
-      setItemsPerPage(filteredProducts.length); // Mostrar todos
-    } else {
-      setItemsPerPage(Number(value));
-    }
-    setCurrentPage(1);
+    const value = e.target.value === "all" ? "all" : Number(e.target.value);
+    setItemsPerPage(value);
+    setCurrentPage(1); // Reiniciar página al cambiar items por página
   };
 
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentProducts = filteredProducts.slice(indexOfFirstItem, indexOfLastItem);
-
-  const totalPages = itemsPerPage === filteredProducts.length ? 1 : Math.ceil(filteredProducts.length / itemsPerPage);
+  const handleViewModeChange = (e) => {
+    setViewMode(e.target.value);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Sidebar />
       <main className="ml-64 p-6">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
           <h2 className="text-2xl font-semibold text-gray-800">Inventario</h2>
           <button
             onClick={() => navigate("/products/add")}
@@ -68,38 +81,50 @@ const ProductPage = () => {
           </button>
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
+        {/* Controles de búsqueda, mostrar y vista */}
+        <div className="flex flex-wrap items-center gap-4 mb-6">
           <input
             type="text"
-            placeholder="Buscar producto por nombre o descripción..."
+            placeholder="Buscar producto..."
             value={searchTerm}
-            onChange={handleSearch}
-            className="px-4 py-2 border rounded-md w-full sm:w-1/2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onChange={handleSearchChange}
+            className="w-80 border rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
 
-          <select
-            value={itemsPerPage === filteredProducts.length ? "all" : itemsPerPage}
-            onChange={handleItemsPerPageChange}
-            className="px-4 py-2 border rounded-md w-full sm:w-40 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {[10, 25, 50, 100].map((num) => (
-              <option key={num} value={num}>
-                Mostrar {num}
-              </option>
-            ))}
-            <option value="all">Mostrar todos</option>
-          </select>
+          <label className="flex items-center gap-2">
+            Mostrar:
+            <select
+              value={itemsPerPage}
+              onChange={handleItemsPerPageChange}
+              className="border rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={100}>100</option>
+              <option value="all">Todos</option>
+            </select>
+          </label>
+
+          <label className="flex items-center gap-2">
+            Vista:
+            <select
+              value={viewMode}
+              onChange={handleViewModeChange}
+              className="border rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="cards">Tarjetas</option>
+              <option value="table">Tabla</option>
+            </select>
+          </label>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {currentProducts.length === 0 ? (
-            <p className="col-span-full text-center text-gray-500">
-              No hay productos que coincidan con la búsqueda.
-            </p>
-          ) : (
-            currentProducts.map((product) => {
+        {/* Mostrar productos */}
+        {viewMode === "cards" ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {displayedProducts.map((product) => {
               const imgPath =
-                product.imagenes?.[0] && typeof product.imagenes[0] === "string"
+                product.imagenes?.[0] &&
+                typeof product.imagenes[0] === "string"
                   ? product.imagenes[0].replace(/^uploads\//, "")
                   : null;
 
@@ -120,7 +145,9 @@ const ProductPage = () => {
                   )}
 
                   <div className="p-4 flex-grow flex flex-col">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">{product.nombre}</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      {product.nombre}
+                    </h3>
                     <p className="text-gray-700 flex-grow">{product.descripcion}</p>
                     <p className="mt-2 text-gray-600">
                       <strong>Disponible:</strong> {product.cantidadDisponible}
@@ -140,48 +167,80 @@ const ProductPage = () => {
                   </div>
                 </div>
               );
-            })
-          )}
-        </div>
+            })}
+          </div>
+        ) : (
+          <table className="w-full border-collapse border border-gray-300">
+            <thead>
+              <tr className="bg-gray-200">
+                <th className="border border-gray-300 px-4 py-2 text-left">Imagen</th>
+                <th className="border border-gray-300 px-4 py-2 text-left">Nombre</th>
+                <th className="border border-gray-300 px-4 py-2 text-left">Descripción</th>
+                <th className="border border-gray-300 px-4 py-2 text-left">Cantidad</th>
+                <th className="border border-gray-300 px-4 py-2 text-left">Costo Alquiler</th>
+                <th className="border border-gray-300 px-4 py-2 text-left">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {displayedProducts.map((product) => (
+                <tr key={product._id} className="hover:bg-gray-100">
+                  <td className="border border-gray-300 px-4 py-2">
+                    {product.imagenes?.[0] && (
+                      <img
+                        src={`${process.env.REACT_APP_UPLOADS_URL}${product.imagenes[0]}`}
+                        alt={product.nombre}
+                        className="w-16 h-16 object-contain"
+                      />
+                    )}
+                  </td>
+                  <td className="border border-gray-300 px-4 py-2">{product.nombre}</td>
+                  <td className="border border-gray-300 px-4 py-2">{product.descripcion}</td>
+                  <td className="border border-gray-300 px-4 py-2">{product.cantidadDisponible}</td>
+                  <td className="border border-gray-300 px-4 py-2">
+                    {typeof product.costoAlquiler === "number"
+                      ? `$${product.costoAlquiler.toFixed(2)}`
+                      : "N/A"}
+                  </td>
+                  <td className="border border-gray-300 px-4 py-2">
+                    <button
+                      onClick={() => navigate(`/products/edit/${product._id}`)}
+                      className="bg-yellow-400 text-black px-3 py-1 rounded hover:bg-yellow-500 transition-colors"
+                    >
+                      Ver
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
 
-        {totalPages > 1 && (
-          <div className="flex justify-center items-center space-x-3 mt-8">
+        {/* Paginación */}
+        {itemsPerPage !== "all" && totalPages > 1 && (
+          <div className="mt-6 flex justify-center items-center gap-4 flex-wrap">
             <button
+              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
               disabled={currentPage === 1}
-              onClick={() => setCurrentPage((prev) => prev - 1)}
-              className={`px-3 py-1 rounded-md ${
+              className={`px-4 py-2 rounded border ${
                 currentPage === 1
                   ? "bg-gray-300 cursor-not-allowed"
-                  : "bg-blue-600 text-white hover:bg-blue-700"
+                  : "bg-white hover:bg-gray-100"
               }`}
             >
               Anterior
             </button>
 
-            {[...Array(totalPages)].map((_, i) => {
-              const pageNum = i + 1;
-              return (
-                <button
-                  key={pageNum}
-                  onClick={() => setCurrentPage(pageNum)}
-                  className={`px-3 py-1 rounded-md ${
-                    currentPage === pageNum
-                      ? "bg-blue-800 text-white"
-                      : "bg-blue-600 text-white hover:bg-blue-700"
-                  }`}
-                >
-                  {pageNum}
-                </button>
-              );
-            })}
+            <span>
+              Página {currentPage} de {totalPages}
+            </span>
 
             <button
+              onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
               disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage((prev) => prev + 1)}
-              className={`px-3 py-1 rounded-md ${
+              className={`px-4 py-2 rounded border ${
                 currentPage === totalPages
                   ? "bg-gray-300 cursor-not-allowed"
-                  : "bg-blue-600 text-white hover:bg-blue-700"
+                  : "bg-white hover:bg-gray-100"
               }`}
             >
               Siguiente
