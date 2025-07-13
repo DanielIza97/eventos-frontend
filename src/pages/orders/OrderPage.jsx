@@ -67,7 +67,7 @@ const OrdersPage = () => {
             Calendario de Pedidos
           </h2>
           <button
-            onClick={() => navigate("/crear-evento")}
+            onClick={() => navigate("/orders/add")}
             className="bg-blue-600 text-white px-4 py-2 rounded-md shadow hover:bg-blue-700 transition-colors"
           >
             Crear nuevo pedido

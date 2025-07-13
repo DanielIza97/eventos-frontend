@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
 import LoginPage from "./pages/auth/LoginPage";
 import CreateEventPage from "./pages/orders/CreateOrderPage";
-import OrdersPage from "./pages/orders/OrdersPage";
+import OrderPage from "./pages/orders/OrderPage";
 import PrivateRoute from "./components/common/PrivateRoute";
 import ProductPage from "./pages/products/ProductPage";
 import AddProductPage from "./pages/products/AddProductPage";
@@ -15,24 +15,6 @@ function App() {
       <Routes>
         <Route path="/" element={<LoginPage />} />
         <Route path="/login" element={<LoginPage />} />
-
-        <Route
-          path="/crear-evento"
-          element={
-            <PrivateRoute>
-              <CreateEventPage />
-            </PrivateRoute>
-          }
-        />
-
-        <Route
-          path="/orders"
-          element={
-            <PrivateRoute>
-              <OrdersPage />
-            </PrivateRoute>
-          }
-        />
 
         <Route
           path="/products"
@@ -62,7 +44,25 @@ function App() {
         />
 
         <Route
-          path="/editar-evento/:id"
+          path="/orders"
+          element={
+            <PrivateRoute>
+              <OrderPage />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/orders/add"
+          element={
+            <PrivateRoute>
+              <CreateEventPage />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/orders/edit/:id"
           element={
             <PrivateRoute>
               <EditOrderPage />

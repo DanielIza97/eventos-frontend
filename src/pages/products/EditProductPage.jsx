@@ -16,39 +16,41 @@ const EditProductPage = () => {
     imagenes: [],
   });
 
+  const [originalProduct, setOriginalProduct] = useState(null);
   const [newImages, setNewImages] = useState([]);
   const [imagenesParaEliminar, setImagenesParaEliminar] = useState([]);
+  const [editMode, setEditMode] = useState(false);
 
   useEffect(() => {
     const fetchProduct = async () => {
       try {
         const res = await API.get(`/productos/${id}`);
-        setProduct({
+        const fetchedProduct = {
           ...res.data,
           cantidadDisponible: Number(res.data.cantidadDisponible) || 0,
           costoCompra: Number(res.data.costoCompra) || 0,
           costoAlquiler: Number(res.data.costoAlquiler) || 0,
           imagenes: res.data.imagenes || [],
-        });
+        };
+        setProduct(fetchedProduct);
+        setOriginalProduct(fetchedProduct);
       } catch (err) {
         console.error("Error al cargar el producto:", err);
+        alert("No se pudo cargar el producto");
+        navigate("/products");
       }
     };
 
     fetchProduct();
-  }, [id]);
+  }, [id, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    if (
-      name === "cantidadDisponible" ||
-      name === "costoCompra" ||
-      name === "costoAlquiler"
-    ) {
-      setProduct({ ...product, [name]: Number(value) });
-    } else {
-      setProduct({ ...product, [name]: value });
-    }
+    const updatedValue =
+      name === "cantidadDisponible" || name === "costoCompra" || name === "costoAlquiler"
+        ? Number(value)
+        : value;
+    setProduct({ ...product, [name]: updatedValue });
   };
 
   const handleImageChange = (e) => {
@@ -72,24 +74,15 @@ const EditProductPage = () => {
 
     try {
       const formData = new FormData();
-
       formData.append("nombre", product.nombre);
       formData.append("descripcion", product.descripcion);
       formData.append("cantidadDisponible", product.cantidadDisponible);
       formData.append("costoCompra", product.costoCompra);
       formData.append("costoAlquiler", product.costoAlquiler);
-
-      newImages.forEach((img) => {
-        formData.append("imagenes", img);
-      });
-
-      formData.append(
-        "imagenesParaEliminar",
-        JSON.stringify(imagenesParaEliminar)
-      );
+      newImages.forEach((img) => formData.append("imagenes", img));
+      formData.append("imagenesParaEliminar", JSON.stringify(imagenesParaEliminar));
 
       await API.put(`/productos/${id}`, formData);
-
       alert("Producto actualizado correctamente");
       navigate("/products");
     } catch (err) {
@@ -98,187 +91,200 @@ const EditProductPage = () => {
     }
   };
 
+  const handleCancelEdit = () => {
+    setProduct(originalProduct);
+    setNewImages([]);
+    setImagenesParaEliminar([]);
+    setEditMode(false);
+  };
+
+  const isProductModified = () => {
+    if (!originalProduct) return false;
+
+    const campos = ["nombre", "descripcion", "cantidadDisponible", "costoCompra", "costoAlquiler"];
+
+    for (let campo of campos) {
+      if (product[campo] !== originalProduct[campo]) return true;
+    }
+
+    return newImages.length > 0 || imagenesParaEliminar.length > 0;
+  };
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
       <main className="flex-1 p-6 ml-64">
         <div className="max-w-4xl mx-auto bg-white rounded-md shadow-md p-6">
-          <h2 className="text-3xl font-semibold mb-8 text-gray-800">
-            Editar Producto
-          </h2>
+          <h2 className="text-3xl font-semibold mb-6 text-gray-800">Editar Producto</h2>
 
-          <form
-            onSubmit={handleSubmit}
-            encType="multipart/form-data"
-            className="space-y-6"
-          >
-            {/* Campos de texto */}
+          <form onSubmit={handleSubmit} encType="multipart/form-data" className="space-y-6">
             <div>
-              <label htmlFor="nombre" className="block text-gray-700 font-medium mb-1">
-                Nombre:
-              </label>
+              <label className="block text-gray-700">Nombre:</label>
               <input
-                id="nombre"
                 name="nombre"
                 value={product.nombre}
                 onChange={handleChange}
-                required
-                className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={!editMode}
+                className="w-full border px-4 py-2 rounded"
               />
             </div>
 
             <div>
-              <label htmlFor="descripcion" className="block text-gray-700 font-medium mb-1">
-                Descripción:
-              </label>
+              <label className="block text-gray-700">Descripción:</label>
               <textarea
-                id="descripcion"
                 name="descripcion"
                 value={product.descripcion}
                 onChange={handleChange}
-                rows={4}
-                className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                rows={3}
+                disabled={!editMode}
+                className="w-full border px-4 py-2 rounded resize-none"
               />
             </div>
 
-            <div className="grid grid-cols-3 gap-6">
+            <div className="grid grid-cols-3 gap-4">
               <div>
-                <label htmlFor="cantidadDisponible" className="block text-gray-700 font-medium mb-1">
-                  Cantidad Disponible:
-                </label>
+                <label className="block text-gray-700">Cantidad Disponible:</label>
                 <input
-                  id="cantidadDisponible"
                   name="cantidadDisponible"
                   type="number"
                   value={product.cantidadDisponible}
                   onChange={handleChange}
-                  min="0"
-                  className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={!editMode}
+                  className="w-full border px-4 py-2 rounded"
                 />
               </div>
 
               <div>
-                <label htmlFor="costoCompra" className="block text-gray-700 font-medium mb-1">
-                  Costo de Compra:
-                </label>
+                <label className="block text-gray-700">Costo de Compra:</label>
                 <input
-                  id="costoCompra"
                   name="costoCompra"
                   type="number"
-                  step="0.01"
                   value={product.costoCompra}
                   onChange={handleChange}
-                  min="0"
-                  className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={!editMode}
+                  className="w-full border px-4 py-2 rounded"
                 />
               </div>
 
               <div>
-                <label htmlFor="costoAlquiler" className="block text-gray-700 font-medium mb-1">
-                  Costo de Alquiler:
-                </label>
+                <label className="block text-gray-700">Costo de Alquiler:</label>
                 <input
-                  id="costoAlquiler"
                   name="costoAlquiler"
                   type="number"
-                  step="0.01"
                   value={product.costoAlquiler}
                   onChange={handleChange}
-                  min="0"
-                  className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={!editMode}
+                  className="w-full border px-4 py-2 rounded"
                 />
               </div>
             </div>
 
             {/* Imágenes actuales */}
             <div>
-              <label className="block text-gray-700 font-medium mb-3">
-                Imágenes actuales:
-              </label>
-              <div className="flex flex-wrap gap-4 mb-4">
-                {product.imagenes &&
-                  product.imagenes.map((img, i) => (
-                    <div key={i} className="relative">
-                      <img
-                        src={`${process.env.REACT_APP_UPLOADS_URL}${img}`}
-                        alt={`Imagen ${i + 1}`}
-                        className={`w-24 h-24 object-contain rounded-md border bg-gray-100 ${
-                          imagenesParaEliminar.includes(img)
-                            ? "opacity-50"
-                            : "opacity-100"
-                        }`}
-                      />
+              <label className="block text-gray-700">Imágenes actuales:</label>
+              <div className="flex flex-wrap gap-3">
+                {product.imagenes.map((img, i) => (
+                  <div key={i} className="relative">
+                    <img
+                      src={`${process.env.REACT_APP_UPLOADS_URL}${img}`}
+                      alt={`Imagen ${i + 1}`}
+                      className={`w-24 h-24 object-contain border rounded ${
+                        imagenesParaEliminar.includes(img) ? "opacity-50" : "opacity-100"
+                      }`}
+                    />
+                    {editMode && (
                       <button
                         type="button"
                         onClick={() => toggleEliminarImagen(img)}
-                        title={
-                          imagenesParaEliminar.includes(img)
-                            ? "Deshacer eliminación"
-                            : "Eliminar imagen"
-                        }
-                        className={`absolute top-0 right-0 w-6 h-6 rounded-tr-md rounded-bl-md flex items-center justify-center text-white text-sm font-bold ${
-                          imagenesParaEliminar.includes(img)
-                            ? "bg-green-600"
-                            : "bg-red-600"
-                        } hover:opacity-80 transition-opacity`}
+                        className={`absolute top-0 right-0 w-5 h-5 text-xs font-bold text-white rounded-tr-md rounded-bl-md flex items-center justify-center ${
+                          imagenesParaEliminar.includes(img) ? "bg-green-600" : "bg-red-600"
+                        }`}
                       >
                         ×
                       </button>
-                    </div>
-                  ))}
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
 
-            {/* Previews de nuevas imágenes cargadas */}
-            {newImages.length > 0 && (
-              <div>
-                <label className="block text-gray-700 font-medium mb-2">
-                  Nuevas imágenes seleccionadas:
-                </label>
-                <div className="flex flex-wrap gap-4 mb-4">
-                  {newImages.map((img, i) => (
-                    <div key={`nuevo-${i}`} className="relative">
-                      <img
-                        src={URL.createObjectURL(img)}
-                        alt={`Nueva imagen ${i + 1}`}
-                        className="w-24 h-24 object-contain rounded-md border bg-gray-100"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeNewImage(i)}
-                        title="Eliminar nueva imagen"
-                        className="absolute top-0 right-0 w-6 h-6 rounded-tr-md rounded-bl-md flex items-center justify-center text-white text-sm font-bold bg-red-600 hover:opacity-80 transition-opacity"
-                      >
-                        ×
-                      </button>
+            {/* Nuevas imágenes */}
+            {editMode && (
+              <>
+                {newImages.length > 0 && (
+                  <div>
+                    <label className="block text-gray-700">Nuevas imágenes:</label>
+                    <div className="flex flex-wrap gap-3">
+                      {newImages.map((img, i) => (
+                        <div key={i} className="relative">
+                          <img
+                            src={URL.createObjectURL(img)}
+                            alt="preview"
+                            className="w-24 h-24 object-contain border rounded"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeNewImage(i)}
+                            className="absolute top-0 right-0 w-5 h-5 bg-red-600 text-white text-xs font-bold rounded-tr-md rounded-bl-md"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-gray-700">Subir nuevas imágenes:</label>
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    disabled={!editMode}
+                  />
                 </div>
-              </div>
+              </>
             )}
 
-            {/* Subir nuevas imágenes */}
-            <div>
-              <label htmlFor="imagenes" className="block text-gray-700 font-medium mb-1">
-                Subir nuevas imágenes (opcional):
-              </label>
-              <input
-                id="imagenes"
-                name="imagenes"
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleImageChange}
-                className="block w-full text-gray-700"
-              />
+            {/* Botones */}
+            <div className="flex gap-4 pt-4">
+              {editMode ? (
+                <>
+                  {isProductModified() && (
+                    <button
+                      type="submit"
+                      className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+                    >
+                      Guardar Cambios
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleCancelEdit}
+                    className="flex-1 bg-gray-500 text-white py-2 rounded hover:bg-gray-600"
+                  >
+                    Cancelar
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setEditMode(true)}
+                  className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 rounded"
+                >
+                  Editar
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => navigate(-1)}
+                className="bg-slate-200 text-gray-800 px-4 py-2 rounded hover:bg-slate-300"
+              >
+                Volver
+              </button>
             </div>
-
-            <button
-              type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-md shadow-md transition-colors"
-            >
-              Guardar Cambios
-            </button>
           </form>
         </div>
       </main>
