@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { ToastContainer, toast } from "react-toastify";
 import API from "../../services/api";
 import Sidebar from "../../components/common/Sidebar";
 
@@ -20,6 +21,8 @@ const EditProductPage = () => {
   const [newImages, setNewImages] = useState([]);
   const [imagenesParaEliminar, setImagenesParaEliminar] = useState([]);
   const [editMode, setEditMode] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -35,9 +38,10 @@ const EditProductPage = () => {
         setProduct(fetchedProduct);
         setOriginalProduct(fetchedProduct);
       } catch (err) {
-        console.error("Error al cargar el producto:", err);
-        alert("No se pudo cargar el producto");
+        toast.error("Error al cargar el producto");
         navigate("/products");
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -46,10 +50,13 @@ const EditProductPage = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    const updatedValue =
-      name === "cantidadDisponible" || name === "costoCompra" || name === "costoAlquiler"
-        ? Number(value)
-        : value;
+    const updatedValue = [
+      "cantidadDisponible",
+      "costoCompra",
+      "costoAlquiler",
+    ].includes(name)
+      ? Number(value)
+      : value;
     setProduct({ ...product, [name]: updatedValue });
   };
 
@@ -71,7 +78,7 @@ const EditProductPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+    setSubmitting(true);
     try {
       const formData = new FormData();
       formData.append("nombre", product.nombre);
@@ -80,14 +87,34 @@ const EditProductPage = () => {
       formData.append("costoCompra", product.costoCompra);
       formData.append("costoAlquiler", product.costoAlquiler);
       newImages.forEach((img) => formData.append("imagenes", img));
-      formData.append("imagenesParaEliminar", JSON.stringify(imagenesParaEliminar));
+      formData.append(
+        "imagenesParaEliminar",
+        JSON.stringify(imagenesParaEliminar)
+      );
 
-      await API.put(`/productos/${id}`, formData);
-      alert("Producto actualizado correctamente");
-      navigate("/products");
+      const res = await API.put(`/productos/${id}`, formData);
+
+      // Actualizar el producto local con la respuesta (si el backend la devuelve)
+      const updated = {
+        ...res.data,
+        cantidadDisponible: Number(res.data.cantidadDisponible),
+        costoCompra: Number(res.data.costoCompra),
+        costoAlquiler: Number(res.data.costoAlquiler),
+        imagenes: res.data.imagenes || [],
+      };
+
+      setProduct(updated);
+      setOriginalProduct(updated);
+      setNewImages([]);
+      setImagenesParaEliminar([]);
+      setEditMode(false);
+
+      toast.success("Producto actualizado correctamente");
     } catch (err) {
-      console.error("Error actualizando producto:", err);
-      alert("Error al actualizar el producto");
+      toast.error("Error al actualizar el producto");
+      console.error(err);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -96,28 +123,47 @@ const EditProductPage = () => {
     setNewImages([]);
     setImagenesParaEliminar([]);
     setEditMode(false);
+    toast.info("Edición cancelada");
   };
 
   const isProductModified = () => {
     if (!originalProduct) return false;
-
-    const campos = ["nombre", "descripcion", "cantidadDisponible", "costoCompra", "costoAlquiler"];
-
+    const campos = [
+      "nombre",
+      "descripcion",
+      "cantidadDisponible",
+      "costoCompra",
+      "costoAlquiler",
+    ];
     for (let campo of campos) {
       if (product[campo] !== originalProduct[campo]) return true;
     }
-
     return newImages.length > 0 || imagenesParaEliminar.length > 0;
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <p className="text-xl text-gray-700">Cargando producto...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
       <main className="flex-1 p-6 ml-64">
+        <ToastContainer />
         <div className="max-w-4xl mx-auto bg-white rounded-md shadow-md p-6">
-          <h2 className="text-3xl font-semibold mb-6 text-gray-800">Editar Producto</h2>
+          <h2 className="text-3xl font-semibold mb-6 text-gray-800">
+            Editar Producto
+          </h2>
 
-          <form onSubmit={handleSubmit} encType="multipart/form-data" className="space-y-6">
+          <form
+            onSubmit={handleSubmit}
+            encType="multipart/form-data"
+            className="space-y-6"
+          >
             <div>
               <label className="block text-gray-700">Nombre:</label>
               <input
@@ -142,41 +188,27 @@ const EditProductPage = () => {
             </div>
 
             <div className="grid grid-cols-3 gap-4">
-              <div>
-                <label className="block text-gray-700">Cantidad Disponible:</label>
-                <input
-                  name="cantidadDisponible"
-                  type="number"
-                  value={product.cantidadDisponible}
-                  onChange={handleChange}
-                  disabled={!editMode}
-                  className="w-full border px-4 py-2 rounded"
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-700">Costo de Compra:</label>
-                <input
-                  name="costoCompra"
-                  type="number"
-                  value={product.costoCompra}
-                  onChange={handleChange}
-                  disabled={!editMode}
-                  className="w-full border px-4 py-2 rounded"
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-700">Costo de Alquiler:</label>
-                <input
-                  name="costoAlquiler"
-                  type="number"
-                  value={product.costoAlquiler}
-                  onChange={handleChange}
-                  disabled={!editMode}
-                  className="w-full border px-4 py-2 rounded"
-                />
-              </div>
+              {["cantidadDisponible", "costoCompra", "costoAlquiler"].map(
+                (field) => (
+                  <div key={field}>
+                    <label className="block text-gray-700">
+                      {field === "cantidadDisponible"
+                        ? "Cantidad Disponible"
+                        : field === "costoCompra"
+                        ? "Costo de Compra"
+                        : "Costo de Alquiler"}
+                    </label>
+                    <input
+                      name={field}
+                      type="number"
+                      value={product[field]}
+                      onChange={handleChange}
+                      disabled={!editMode}
+                      className="w-full border px-4 py-2 rounded"
+                    />
+                  </div>
+                )
+              )}
             </div>
 
             {/* Imágenes actuales */}
@@ -189,7 +221,9 @@ const EditProductPage = () => {
                       src={`${process.env.REACT_APP_UPLOADS_URL}${img}`}
                       alt={`Imagen ${i + 1}`}
                       className={`w-24 h-24 object-contain border rounded ${
-                        imagenesParaEliminar.includes(img) ? "opacity-50" : "opacity-100"
+                        imagenesParaEliminar.includes(img)
+                          ? "opacity-50"
+                          : "opacity-100"
                       }`}
                     />
                     {editMode && (
@@ -197,7 +231,9 @@ const EditProductPage = () => {
                         type="button"
                         onClick={() => toggleEliminarImagen(img)}
                         className={`absolute top-0 right-0 w-5 h-5 text-xs font-bold text-white rounded-tr-md rounded-bl-md flex items-center justify-center ${
-                          imagenesParaEliminar.includes(img) ? "bg-green-600" : "bg-red-600"
+                          imagenesParaEliminar.includes(img)
+                            ? "bg-green-600"
+                            : "bg-red-600"
                         }`}
                       >
                         ×
@@ -213,7 +249,9 @@ const EditProductPage = () => {
               <>
                 {newImages.length > 0 && (
                   <div>
-                    <label className="block text-gray-700">Nuevas imágenes:</label>
+                    <label className="block text-gray-700">
+                      Nuevas imágenes:
+                    </label>
                     <div className="flex flex-wrap gap-3">
                       {newImages.map((img, i) => (
                         <div key={i} className="relative">
@@ -236,7 +274,9 @@ const EditProductPage = () => {
                 )}
 
                 <div>
-                  <label className="block text-gray-700">Subir nuevas imágenes:</label>
+                  <label className="block text-gray-700">
+                    Subir nuevas imágenes:
+                  </label>
                   <input
                     type="file"
                     multiple
@@ -255,9 +295,10 @@ const EditProductPage = () => {
                   {isProductModified() && (
                     <button
                       type="submit"
-                      className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+                      disabled={submitting}
+                      className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-50"
                     >
-                      Guardar Cambios
+                      {submitting ? "Guardando..." : "Guardar Cambios"}
                     </button>
                   )}
                   <button
