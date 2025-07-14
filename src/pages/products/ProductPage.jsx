@@ -1,5 +1,3 @@
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../../services/api";
@@ -16,6 +14,9 @@ const ProductPage = () => {
   const [sortOrder, setSortOrder] = useState("asc");
   const [loading, setLoading] = useState(true);
   const [previewImage, setPreviewImage] = useState(null);
+
+  // Estado para almacenar índice de imagen actual por producto
+  const [imageIndices, setImageIndices] = useState({});
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -66,28 +67,6 @@ const ProductPage = () => {
     a.click();
   };
 
-  const handleExportPDF = () => {
-    const doc = new jsPDF();
-    doc.setFontSize(14);
-    doc.text("Listado de Productos", 14, 16);
-
-    autoTable(doc, {
-      startY: 20,
-      head: [["Nombre", "Descripción", "Cantidad", "Costo Alquiler"]],
-      body: filteredProducts.map((p) => [
-        p.nombre,
-        p.descripcion,
-        p.cantidadDisponible,
-        typeof p.costoAlquiler === "number"
-          ? `$${p.costoAlquiler.toFixed(2)}`
-          : "N/A",
-      ]),
-      styles: { fontSize: 10 },
-    });
-
-    doc.save("productos.pdf");
-  };
-
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
     setCurrentPage(1);
@@ -115,6 +94,25 @@ const ProductPage = () => {
     if (cantidad >= 10) return "text-green-600";
     if (cantidad >= 5) return "text-yellow-600";
     return "text-red-600";
+  };
+
+  // Funciones para cambiar imagen de un producto
+  const prevImage = (productId, imagesLength) => (e) => {
+    e.stopPropagation();
+    setImageIndices((prev) => {
+      const currentIndex = prev[productId] || 0;
+      const newIndex = currentIndex === 0 ? imagesLength - 1 : currentIndex - 1;
+      return { ...prev, [productId]: newIndex };
+    });
+  };
+
+  const nextImage = (productId, imagesLength) => (e) => {
+    e.stopPropagation();
+    setImageIndices((prev) => {
+      const currentIndex = prev[productId] || 0;
+      const newIndex = currentIndex === imagesLength - 1 ? 0 : currentIndex + 1;
+      return { ...prev, [productId]: newIndex };
+    });
   };
 
   const filteredProducts = useMemo(() => {
@@ -173,12 +171,6 @@ const ProductPage = () => {
               className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
             >
               Exportar CSV
-            </button>
-            <button
-              onClick={handleExportPDF}
-              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-            >
-              Exportar PDF
             </button>
             <button
               onClick={() => navigate("/products/add")}
@@ -263,27 +255,47 @@ const ProductPage = () => {
         {viewMode === "cards" ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {displayedProducts.map((product) => {
-              const img = product.imagenes?.[0];
+              const images = product.imagenes || [];
+              const currentImageIndex = imageIndices[product._id] || 0;
+
               return (
                 <div
                   key={product._id}
                   className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col max-w-xs"
                 >
-                  {img && (
+                  {images.length > 0 && (
                     <div
-                      className="w-full h-40 overflow-hidden bg-gray-200 flex items-center justify-center cursor-pointer"
+                      className="relative w-full h-40 overflow-hidden bg-gray-200 flex items-center justify-center cursor-pointer"
                       onClick={() =>
                         setPreviewImage(
-                          `${process.env.REACT_APP_UPLOADS_URL}${img}`
+                          `${process.env.REACT_APP_UPLOADS_URL}${images[currentImageIndex]}`
                         )
                       }
                     >
                       <img
-                        src={`${process.env.REACT_APP_UPLOADS_URL}${img}`}
+                        src={`${process.env.REACT_APP_UPLOADS_URL}${images[currentImageIndex]}`}
                         alt={`Imagen de ${product.nombre}`}
                         loading="lazy"
                         className="max-w-full max-h-full object-contain"
                       />
+                      {images.length > 1 && (
+                        <>
+                          <button
+                            onClick={prevImage(product._id, images.length)}
+                            className="absolute left-1 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full p-1 hover:bg-opacity-75"
+                            aria-label="Imagen anterior"
+                          >
+                            &#8249;
+                          </button>
+                          <button
+                            onClick={nextImage(product._id, images.length)}
+                            className="absolute right-1 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full p-1 hover:bg-opacity-75"
+                            aria-label="Imagen siguiente"
+                          >
+                            &#8250;
+                          </button>
+                        </>
+                      )}
                     </div>
                   )}
 
@@ -341,57 +353,82 @@ const ProductPage = () => {
               </tr>
             </thead>
             <tbody>
-              {displayedProducts.map((product) => (
-                <tr key={product._id} className="hover:bg-gray-100">
-                  <td className="border px-4 py-2">
-                    {product.imagenes?.[0] && (
-                      <img
-                        src={`${process.env.REACT_APP_UPLOADS_URL}${product.imagenes[0]}`}
-                        alt={`Imagen de ${product.nombre}`}
-                        className="w-16 h-16 object-contain cursor-pointer"
-                        loading="lazy"
-                        onClick={() =>
-                          setPreviewImage(
-                            `${process.env.REACT_APP_UPLOADS_URL}${product.imagenes[0]}`
-                          )
-                        }
-                      />
-                    )}
-                  </td>
-                  <td className="border px-4 py-2">{product.nombre}</td>
-                  <td className="border px-4 py-2">{product.descripcion}</td>
-                  <td
-                    className={`border px-4 py-2 ${getStockColor(
-                      product.cantidadDisponible
-                    )}`}
-                  >
-                    {product.cantidadDisponible}
-                  </td>
-                  <td className="border px-4 py-2">
-                    {typeof product.costoAlquiler === "number"
-                      ? `$${product.costoAlquiler.toFixed(2)}`
-                      : "N/A"}
-                  </td>
-                  <td className="border px-4 py-2">
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() =>
-                          navigate(`/products/edit/${product._id}`)
-                        }
-                        className="bg-yellow-400 text-black px-3 py-1 rounded hover:bg-yellow-500"
-                      >
-                        Ver
-                      </button>
-                      <button
-                        onClick={() => handleDelete(product._id)}
-                        className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-                      >
-                        Eliminar
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {displayedProducts.map((product) => {
+                const images = product.imagenes || [];
+                const currentImageIndex = imageIndices[product._id] || 0;
+
+                return (
+                  <tr key={product._id} className="hover:bg-gray-100">
+                    <td className="border px-4 py-2">
+                      {images.length > 0 && (
+                        <div className="relative w-20 h-20 flex items-center justify-center">
+                          <img
+                            src={`${process.env.REACT_APP_UPLOADS_URL}${images[currentImageIndex]}`}
+                            alt={`Imagen de ${product.nombre}`}
+                            className="w-16 h-16 object-contain cursor-pointer"
+                            loading="lazy"
+                            onClick={() =>
+                              setPreviewImage(
+                                `${process.env.REACT_APP_UPLOADS_URL}${images[currentImageIndex]}`
+                              )
+                            }
+                          />
+                          {images.length > 1 && (
+                            <>
+                              <button
+                                onClick={prevImage(product._id, images.length)}
+                                className="absolute left-0 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full p-1 hover:bg-opacity-75"
+                                aria-label="Imagen anterior"
+                              >
+                                &#8249;
+                              </button>
+                              <button
+                                onClick={nextImage(product._id, images.length)}
+                                className="absolute right-0 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full p-1 hover:bg-opacity-75"
+                                aria-label="Imagen siguiente"
+                              >
+                                &#8250;
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </td>
+                    <td className="border px-4 py-2">{product.nombre}</td>
+                    <td className="border px-4 py-2">{product.descripcion}</td>
+                    <td
+                      className={`border px-4 py-2 ${getStockColor(
+                        product.cantidadDisponible
+                      )}`}
+                    >
+                      {product.cantidadDisponible}
+                    </td>
+                    <td className="border px-4 py-2">
+                      {typeof product.costoAlquiler === "number"
+                        ? `$${product.costoAlquiler.toFixed(2)}`
+                        : "N/A"}
+                    </td>
+                    <td className="border px-4 py-2">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() =>
+                            navigate(`/products/edit/${product._id}`)
+                          }
+                          className="bg-yellow-400 text-black px-3 py-1 rounded hover:bg-yellow-500"
+                        >
+                          Ver
+                        </button>
+                        <button
+                          onClick={() => handleDelete(product._id)}
+                          className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
