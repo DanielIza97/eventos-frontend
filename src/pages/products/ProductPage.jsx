@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import API from "../../services/api";
 import Sidebar from "../../components/common/Sidebar";
 
@@ -14,8 +16,6 @@ const ProductPage = () => {
   const [sortOrder, setSortOrder] = useState("asc");
   const [loading, setLoading] = useState(true);
   const [previewImage, setPreviewImage] = useState(null);
-
-  // Estado para almacenar índice de imagen actual por producto
   const [imageIndices, setImageIndices] = useState({});
 
   useEffect(() => {
@@ -46,6 +46,7 @@ const ProductPage = () => {
     }
   };
 
+  // Exportar CSV (mantengo igual)
   const handleExportCSV = () => {
     const headers = ["Nombre", "Descripción", "Cantidad", "Costo Alquiler"];
     const rows = filteredProducts.map((p) => [
@@ -65,6 +66,27 @@ const ProductPage = () => {
     a.href = url;
     a.download = "inventario.csv";
     a.click();
+  };
+
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    autoTable(doc, {
+      head: [["Nombre", "Descripción", "Cantidad", "Costo Alquiler"]],
+      body: filteredProducts.map((p) => [
+        p.nombre,
+        p.descripcion,
+        p.cantidadDisponible.toString(),
+        typeof p.costoAlquiler === "number"
+          ? `$${p.costoAlquiler.toFixed(2)}`
+          : "N/A",
+      ]),
+      startY: 20,
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [22, 160, 133] },
+    });
+
+    doc.text("Inventario de Productos", 14, 15);
+    doc.save("inventario.pdf");
   };
 
   const handleSearchChange = (e) => {
@@ -96,7 +118,6 @@ const ProductPage = () => {
     return "text-red-600";
   };
 
-  // Funciones para cambiar imagen de un producto
   const prevImage = (productId, imagesLength) => (e) => {
     e.stopPropagation();
     setImageIndices((prev) => {
@@ -171,6 +192,12 @@ const ProductPage = () => {
               className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
             >
               Exportar CSV
+            </button>
+            <button
+              onClick={handleExportPDF}
+              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+            >
+              Exportar PDF
             </button>
             <button
               onClick={() => navigate("/products/add")}
