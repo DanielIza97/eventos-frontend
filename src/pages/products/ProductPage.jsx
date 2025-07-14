@@ -1,3 +1,5 @@
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../../services/api";
@@ -10,9 +12,10 @@ const ProductPage = () => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [viewMode, setViewMode] = useState("cards");
-  const [sortField, setSortField] = useState("nombre"); // "nombre" o "descripcion"
+  const [sortField, setSortField] = useState("nombre");
   const [sortOrder, setSortOrder] = useState("asc");
   const [loading, setLoading] = useState(true);
+  const [previewImage, setPreviewImage] = useState(null);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -28,6 +31,62 @@ const ProductPage = () => {
 
     fetchProducts();
   }, []);
+
+  const handleDelete = async (id) => {
+    if (window.confirm("¿Estás seguro de eliminar este producto?")) {
+      try {
+        await API.delete(`/productos/${id}`);
+        setProducts(products.filter((p) => p._id !== id));
+        alert("Producto eliminado correctamente");
+      } catch (error) {
+        console.error("Error al eliminar:", error);
+        alert("Error al eliminar el producto");
+      }
+    }
+  };
+
+  const handleExportCSV = () => {
+    const headers = ["Nombre", "Descripción", "Cantidad", "Costo Alquiler"];
+    const rows = filteredProducts.map((p) => [
+      p.nombre,
+      p.descripcion,
+      p.cantidadDisponible,
+      p.costoAlquiler,
+    ]);
+    const csvContent = [headers, ...rows]
+      .map((row) => row.map((col) => `"${col}"`).join(","))
+      .join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "inventario.csv";
+    a.click();
+  };
+
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(14);
+    doc.text("Listado de Productos", 14, 16);
+
+    autoTable(doc, {
+      startY: 20,
+      head: [["Nombre", "Descripción", "Cantidad", "Costo Alquiler"]],
+      body: filteredProducts.map((p) => [
+        p.nombre,
+        p.descripcion,
+        p.cantidadDisponible,
+        typeof p.costoAlquiler === "number"
+          ? `$${p.costoAlquiler.toFixed(2)}`
+          : "N/A",
+      ]),
+      styles: { fontSize: 10 },
+    });
+
+    doc.save("productos.pdf");
+  };
 
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
@@ -52,6 +111,12 @@ const ProductPage = () => {
     setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
   };
 
+  const getStockColor = (cantidad) => {
+    if (cantidad >= 10) return "text-green-600";
+    if (cantidad >= 5) return "text-yellow-600";
+    return "text-red-600";
+  };
+
   const filteredProducts = useMemo(() => {
     let filtered = products.filter((product) =>
       product.nombre.toLowerCase().includes(searchTerm.toLowerCase())
@@ -61,8 +126,9 @@ const ProductPage = () => {
       const aField = a[sortField]?.toLowerCase() || "";
       const bField = b[sortField]?.toLowerCase() || "";
 
-      if (sortOrder === "asc") return aField.localeCompare(bField);
-      else return bField.localeCompare(aField);
+      return sortOrder === "asc"
+        ? aField.localeCompare(bField)
+        : bField.localeCompare(aField);
     });
 
     return filtered;
@@ -101,12 +167,26 @@ const ProductPage = () => {
       <main className="ml-64 p-6">
         <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
           <h2 className="text-2xl font-semibold text-gray-800">Inventario</h2>
-          <button
-            onClick={() => navigate("/products/add")}
-            className="bg-green-600 text-white px-4 py-2 rounded-md shadow hover:bg-green-700 transition-colors"
-          >
-            Agregar nuevo producto
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleExportCSV}
+              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+            >
+              Exportar CSV
+            </button>
+            <button
+              onClick={handleExportPDF}
+              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+            >
+              Exportar PDF
+            </button>
+            <button
+              onClick={() => navigate("/products/add")}
+              className="bg-green-600 text-white px-4 py-2 rounded-md shadow hover:bg-green-700"
+            >
+              Agregar nuevo producto
+            </button>
+          </div>
         </div>
 
         {/* Controles */}
@@ -165,6 +245,20 @@ const ProductPage = () => {
           </label>
         </div>
 
+        {/* Modal de imagen */}
+        {previewImage && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50"
+            onClick={() => setPreviewImage(null)}
+          >
+            <img
+              src={previewImage}
+              alt="Ampliada"
+              className="max-w-full max-h-full rounded shadow-lg"
+            />
+          </div>
+        )}
+
         {/* Mostrar productos */}
         {viewMode === "cards" ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -176,7 +270,14 @@ const ProductPage = () => {
                   className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col max-w-xs"
                 >
                   {img && (
-                    <div className="w-full h-40 overflow-hidden bg-gray-200 flex items-center justify-center">
+                    <div
+                      className="w-full h-40 overflow-hidden bg-gray-200 flex items-center justify-center cursor-pointer"
+                      onClick={() =>
+                        setPreviewImage(
+                          `${process.env.REACT_APP_UPLOADS_URL}${img}`
+                        )
+                      }
+                    >
                       <img
                         src={`${process.env.REACT_APP_UPLOADS_URL}${img}`}
                         alt={`Imagen de ${product.nombre}`}
@@ -193,7 +294,11 @@ const ProductPage = () => {
                     <p className="text-gray-700 text-sm flex-grow">
                       {product.descripcion}
                     </p>
-                    <p className="mt-2 text-gray-600">
+                    <p
+                      className={`mt-2 ${getStockColor(
+                        product.cantidadDisponible
+                      )}`}
+                    >
                       <strong>Disponible:</strong> {product.cantidadDisponible}
                     </p>
                     <p className="text-gray-600">
@@ -202,12 +307,22 @@ const ProductPage = () => {
                         ? `$${product.costoAlquiler.toFixed(2)}`
                         : "N/A"}
                     </p>
-                    <button
-                      onClick={() => navigate(`/products/edit/${product._id}`)}
-                      className="mt-4 bg-yellow-400 text-black py-2 rounded hover:bg-yellow-500 transition-colors"
-                    >
-                      Ver
-                    </button>
+                    <div className="flex gap-2 mt-4">
+                      <button
+                        onClick={() =>
+                          navigate(`/products/edit/${product._id}`)
+                        }
+                        className="bg-yellow-400 text-black px-3 py-1 rounded hover:bg-yellow-500"
+                      >
+                        Ver
+                      </button>
+                      <button
+                        onClick={() => handleDelete(product._id)}
+                        className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -233,14 +348,23 @@ const ProductPage = () => {
                       <img
                         src={`${process.env.REACT_APP_UPLOADS_URL}${product.imagenes[0]}`}
                         alt={`Imagen de ${product.nombre}`}
-                        className="w-16 h-16 object-contain"
+                        className="w-16 h-16 object-contain cursor-pointer"
                         loading="lazy"
+                        onClick={() =>
+                          setPreviewImage(
+                            `${process.env.REACT_APP_UPLOADS_URL}${product.imagenes[0]}`
+                          )
+                        }
                       />
                     )}
                   </td>
                   <td className="border px-4 py-2">{product.nombre}</td>
                   <td className="border px-4 py-2">{product.descripcion}</td>
-                  <td className="border px-4 py-2">
+                  <td
+                    className={`border px-4 py-2 ${getStockColor(
+                      product.cantidadDisponible
+                    )}`}
+                  >
                     {product.cantidadDisponible}
                   </td>
                   <td className="border px-4 py-2">
@@ -249,12 +373,22 @@ const ProductPage = () => {
                       : "N/A"}
                   </td>
                   <td className="border px-4 py-2">
-                    <button
-                      onClick={() => navigate(`/products/edit/${product._id}`)}
-                      className="bg-yellow-400 text-black px-3 py-1 rounded hover:bg-yellow-500 transition-colors"
-                    >
-                      Ver
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() =>
+                          navigate(`/products/edit/${product._id}`)
+                        }
+                        className="bg-yellow-400 text-black px-3 py-1 rounded hover:bg-yellow-500"
+                      >
+                        Ver
+                      </button>
+                      <button
+                        onClick={() => handleDelete(product._id)}
+                        className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
