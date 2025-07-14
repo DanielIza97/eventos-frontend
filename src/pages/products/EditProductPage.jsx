@@ -78,6 +78,12 @@ const EditProductPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const confirm = window.confirm(
+      "¿Estás seguro de que deseas guardar los cambios?"
+    );
+    if (!confirm) return;
+
     setSubmitting(true);
     try {
       const formData = new FormData();
@@ -94,7 +100,6 @@ const EditProductPage = () => {
 
       const res = await API.put(`/productos/${id}`, formData);
 
-      // Actualizar el producto local con la respuesta (si el backend la devuelve)
       const updated = {
         ...res.data,
         cantidadDisponible: Number(res.data.cantidadDisponible),
