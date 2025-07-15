@@ -4,6 +4,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import API from "../../services/api";
 import Sidebar from "../../components/common/Sidebar";
+import ModalConfirm from "../../components/common/ModalConfirm";
 
 const ProductPage = () => {
   const navigate = useNavigate();
@@ -17,6 +18,8 @@ const ProductPage = () => {
   const [loading, setLoading] = useState(true);
   const [previewImage, setPreviewImage] = useState(null);
   const [imageIndices, setImageIndices] = useState({});
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [productToDelete, setProductToDelete] = useState(null);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -33,20 +36,32 @@ const ProductPage = () => {
     fetchProducts();
   }, []);
 
-  const handleDelete = async (id) => {
-    if (window.confirm("¿Estás seguro de eliminar este producto?")) {
-      try {
-        await API.delete(`/productos/${id}`);
-        setProducts(products.filter((p) => p._id !== id));
-        alert("Producto eliminado correctamente");
-      } catch (error) {
-        console.error("Error al eliminar:", error);
-        alert("Error al eliminar el producto");
-      }
+  const handleDelete = (id) => {
+    const product = products.find((p) => p._id === id);
+    setProductToDelete(product);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!productToDelete) return;
+    try {
+      await API.delete(`/productos/${productToDelete._id}`);
+      setProducts((prev) => prev.filter((p) => p._id !== productToDelete._id));
+      alert("Producto eliminado correctamente");
+    } catch (error) {
+      console.error("Error al eliminar:", error);
+      alert("Error al eliminar el producto");
+    } finally {
+      setShowDeleteModal(false);
+      setProductToDelete(null);
     }
   };
 
-  // Exportar CSV (mantengo igual)
+  const cancelDelete = () => {
+    setShowDeleteModal(false);
+    setProductToDelete(null);
+  };
+
   const handleExportCSV = () => {
     const headers = ["Nombre", "Descripción", "Cantidad", "Costo Alquiler"];
     const rows = filteredProducts.map((p) => [
@@ -492,6 +507,13 @@ const ProductPage = () => {
             </button>
           </div>
         )}
+        <ModalConfirm
+          isOpen={showDeleteModal}
+          title="Confirmar eliminación"
+          message={`¿Estás seguro de eliminar el producto "${productToDelete?.nombre}"?`}
+          onConfirm={confirmDelete}
+          onCancel={cancelDelete}
+        />
       </main>
     </div>
   );
