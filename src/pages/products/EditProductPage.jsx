@@ -1,12 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import API from "../../services/api";
 import Sidebar from "../../components/common/Sidebar";
+import ModalConfirm from "../../components/common/ModalConfirm";
+import "react-toastify/dist/ReactToastify.css";
 
 const EditProductPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const formRef = useRef(null);
 
   const [product, setProduct] = useState({
     nombre: "",
@@ -23,6 +26,7 @@ const EditProductPage = () => {
   const [editMode, setEditMode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -57,11 +61,11 @@ const EditProductPage = () => {
     ].includes(name)
       ? Number(value)
       : value;
-    setProduct({ ...product, [name]: updatedValue });
+    setProduct((prev) => ({ ...prev, [name]: updatedValue }));
   };
 
   const handleImageChange = (e) => {
-    setNewImages([...e.target.files]);
+    setNewImages((prev) => [...prev, ...Array.from(e.target.files)]);
   };
 
   const toggleEliminarImagen = (imgName) => {
@@ -76,15 +80,66 @@ const EditProductPage = () => {
     setNewImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = async (e) => {
+  const validateFields = () => {
+    if (!product.nombre.trim()) {
+      toast.error("El nombre es obligatorio");
+      return false;
+    }
+    if (!product.descripcion.trim()) {
+      toast.error("La descripción es obligatoria");
+      return false;
+    }
+    if (
+      product.cantidadDisponible < 0 ||
+      product.costoCompra < 0 ||
+      product.costoAlquiler < 0
+    ) {
+      toast.error("Los valores numéricos no pueden ser negativos");
+      return false;
+    }
+    if (
+      product.imagenes.length -
+        imagenesParaEliminar.length +
+        newImages.length ===
+      0
+    ) {
+      toast.error("Debe haber al menos una imagen");
+      return false;
+    }
+    return true;
+  };
+
+  const isProductModified = () => {
+    if (!originalProduct) return false;
+
+    const campos = [
+      "nombre",
+      "descripcion",
+      "cantidadDisponible",
+      "costoCompra",
+      "costoAlquiler",
+    ];
+
+    for (let campo of campos) {
+      if (product[campo] !== originalProduct[campo]) return true;
+    }
+
+    if (newImages.length > 0) return true;
+    if (imagenesParaEliminar.length > 0) return true;
+
+    return false;
+  };
+
+  const handleSubmit = (e) => {
     e.preventDefault();
+    if (!validateFields()) return;
+    setShowConfirmModal(true);
+  };
 
-    const confirm = window.confirm(
-      "¿Estás seguro de que deseas guardar los cambios?"
-    );
-    if (!confirm) return;
-
+  const handleConfirmSave = async () => {
+    setShowConfirmModal(false);
     setSubmitting(true);
+
     try {
       const formData = new FormData();
       formData.append("nombre", product.nombre);
@@ -98,23 +153,23 @@ const EditProductPage = () => {
         JSON.stringify(imagenesParaEliminar)
       );
 
-      const res = await API.put(`/productos/${id}`, formData);
+      await API.put(`/productos/${id}`, formData);
+      toast.success("Producto actualizado correctamente");
 
-      const updated = {
+      const res = await API.get(`/productos/${id}`);
+      const updatedProduct = {
         ...res.data,
-        cantidadDisponible: Number(res.data.cantidadDisponible),
-        costoCompra: Number(res.data.costoCompra),
-        costoAlquiler: Number(res.data.costoAlquiler),
+        cantidadDisponible: Number(res.data.cantidadDisponible) || 0,
+        costoCompra: Number(res.data.costoCompra) || 0,
+        costoAlquiler: Number(res.data.costoAlquiler) || 0,
         imagenes: res.data.imagenes || [],
       };
 
-      setProduct(updated);
-      setOriginalProduct(updated);
+      setProduct(updatedProduct);
+      setOriginalProduct(updatedProduct);
       setNewImages([]);
       setImagenesParaEliminar([]);
       setEditMode(false);
-
-      toast.success("Producto actualizado correctamente");
     } catch (err) {
       toast.error("Error al actualizar el producto");
       console.error(err);
@@ -123,27 +178,16 @@ const EditProductPage = () => {
     }
   };
 
+  const handleCancelSave = () => {
+    setShowConfirmModal(false);
+  };
+
   const handleCancelEdit = () => {
     setProduct(originalProduct);
     setNewImages([]);
     setImagenesParaEliminar([]);
     setEditMode(false);
     toast.info("Edición cancelada");
-  };
-
-  const isProductModified = () => {
-    if (!originalProduct) return false;
-    const campos = [
-      "nombre",
-      "descripcion",
-      "cantidadDisponible",
-      "costoCompra",
-      "costoAlquiler",
-    ];
-    for (let campo of campos) {
-      if (product[campo] !== originalProduct[campo]) return true;
-    }
-    return newImages.length > 0 || imagenesParaEliminar.length > 0;
   };
 
   if (loading) {
@@ -159,6 +203,15 @@ const EditProductPage = () => {
       <Sidebar />
       <main className="flex-1 p-6 ml-64">
         <ToastContainer />
+
+        <ModalConfirm
+          isOpen={showConfirmModal}
+          title="Confirmar cambios"
+          message="¿Estás seguro de guardar los cambios en el producto?"
+          onConfirm={handleConfirmSave}
+          onCancel={handleCancelSave}
+        />
+
         <div className="max-w-4xl mx-auto bg-white rounded-md shadow-md p-6">
           <h2 className="text-3xl font-semibold mb-6 text-gray-800">
             Editar Producto
@@ -168,6 +221,7 @@ const EditProductPage = () => {
             onSubmit={handleSubmit}
             encType="multipart/form-data"
             className="space-y-6"
+            ref={formRef}
           >
             <div>
               <label className="block text-gray-700">Nombre:</label>
