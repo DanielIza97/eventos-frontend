@@ -10,11 +10,24 @@ const ProductPage = () => {
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [viewMode, setViewMode] = useState("cards");
-  const [sortField, setSortField] = useState("nombre");
-  const [sortOrder, setSortOrder] = useState("asc");
+  const [currentPage, setCurrentPage] = useState(() => {
+    const stored = localStorage.getItem("currentPage");
+    return stored ? Number(stored) : 1;
+  });
+
+  const [viewMode, setViewMode] = useState(() => {
+    return localStorage.getItem("viewMode") || "cards";
+  });
+  const [sortField, setSortField] = useState(() => {
+    return localStorage.getItem("sortField") || "nombre";
+  });
+  const [sortOrder, setSortOrder] = useState(() => {
+    return localStorage.getItem("sortOrder") || "asc";
+  });
+  const [itemsPerPage, setItemsPerPage] = useState(() => {
+    const stored = localStorage.getItem("itemsPerPage");
+    return stored === "all" ? "all" : Number(stored) || 10;
+  });
   const [loading, setLoading] = useState(true);
   const [previewImage, setPreviewImage] = useState(null);
   const [imageIndices, setImageIndices] = useState({});
@@ -35,6 +48,46 @@ const ProductPage = () => {
 
     fetchProducts();
   }, []);
+
+  const filteredProducts = useMemo(() => {
+    let filtered = products.filter((product) =>
+      product.nombre.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    filtered.sort((a, b) => {
+      const aField = a[sortField]?.toLowerCase() || "";
+      const bField = b[sortField]?.toLowerCase() || "";
+
+      return sortOrder === "asc"
+        ? aField.localeCompare(bField)
+        : bField.localeCompare(aField);
+    });
+
+    return filtered;
+  }, [products, searchTerm, sortField, sortOrder]);
+
+  const totalPages =
+    itemsPerPage === "all"
+      ? 1
+      : Math.ceil(filteredProducts.length / itemsPerPage);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages || 1);
+    }
+  }, [currentPage, totalPages]);
+
+  useEffect(() => {
+    localStorage.setItem("viewMode", viewMode);
+  }, [viewMode]);
+
+  useEffect(() => {
+    localStorage.setItem("sortField", sortField);
+  }, [sortField]);
+
+  useEffect(() => {
+    localStorage.setItem("sortOrder", sortOrder);
+  }, [sortOrder]);
 
   const handleDelete = (id) => {
     const product = products.find((p) => p._id === id);
@@ -111,8 +164,10 @@ const ProductPage = () => {
 
   const handleItemsPerPageChange = (e) => {
     const value = e.target.value === "all" ? "all" : Number(e.target.value);
-    setItemsPerPage(value);
-    setCurrentPage(1);
+    if (value === "all" || [10, 25, 100].includes(value)) {
+      setItemsPerPage(value);
+      setCurrentPage(1);
+    }
   };
 
   const handleViewModeChange = (e) => {
@@ -150,34 +205,6 @@ const ProductPage = () => {
       return { ...prev, [productId]: newIndex };
     });
   };
-
-  const filteredProducts = useMemo(() => {
-    let filtered = products.filter((product) =>
-      product.nombre.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    filtered.sort((a, b) => {
-      const aField = a[sortField]?.toLowerCase() || "";
-      const bField = b[sortField]?.toLowerCase() || "";
-
-      return sortOrder === "asc"
-        ? aField.localeCompare(bField)
-        : bField.localeCompare(aField);
-    });
-
-    return filtered;
-  }, [products, searchTerm, sortField, sortOrder]);
-
-  const totalPages =
-    itemsPerPage === "all"
-      ? 1
-      : Math.ceil(filteredProducts.length / itemsPerPage);
-
-  useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages || 1);
-    }
-  }, [currentPage, totalPages]);
 
   const displayedProducts =
     itemsPerPage === "all"
@@ -477,43 +504,47 @@ const ProductPage = () => {
 
         {/* Paginación */}
         {itemsPerPage !== "all" && totalPages > 1 && (
-          <div className="mt-6 flex justify-center items-center gap-4 flex-wrap">
+          <div className="flex justify-center mt-6 gap-2 flex-wrap">
             <button
-              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+              onClick={() =>
+                setCurrentPage((prev) => (prev > 1 ? prev - 1 : prev))
+              }
               disabled={currentPage === 1}
-              className={`px-4 py-2 rounded border ${
-                currentPage === 1
-                  ? "bg-gray-300 cursor-not-allowed"
-                  : "bg-white hover:bg-gray-100"
-              }`}
+              className="px-3 py-1 rounded border border-gray-300 bg-white hover:bg-gray-100 disabled:opacity-50"
             >
               Anterior
             </button>
-
-            <span>
-              Página {currentPage} de {totalPages}
-            </span>
-
+            {[...Array(totalPages)].map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrentPage(i + 1)}
+                className={`px-3 py-1 rounded border border-gray-300 hover:bg-gray-100 ${
+                  currentPage === i + 1 ? "bg-blue-500 text-white" : "bg-white"
+                }`}
+              >
+                {i + 1}
+              </button>
+            ))}
             <button
-              onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+              onClick={() =>
+                setCurrentPage((prev) => (prev < totalPages ? prev + 1 : prev))
+              }
               disabled={currentPage === totalPages}
-              className={`px-4 py-2 rounded border ${
-                currentPage === totalPages
-                  ? "bg-gray-300 cursor-not-allowed"
-                  : "bg-white hover:bg-gray-100"
-              }`}
+              className="px-3 py-1 rounded border border-gray-300 bg-white hover:bg-gray-100 disabled:opacity-50"
             >
               Siguiente
             </button>
           </div>
         )}
-        <ModalConfirm
-          isOpen={showDeleteModal}
-          title="Confirmar eliminación"
-          message={`¿Estás seguro de eliminar el producto "${productToDelete?.nombre}"?`}
-          onConfirm={confirmDelete}
-          onCancel={cancelDelete}
-        />
+
+        {showDeleteModal && (
+          <ModalConfirm
+            title="Confirmar eliminación"
+            message={`¿Está seguro de eliminar el producto "${productToDelete?.nombre}"?`}
+            onConfirm={confirmDelete}
+            onCancel={cancelDelete}
+          />
+        )}
       </main>
     </div>
   );
