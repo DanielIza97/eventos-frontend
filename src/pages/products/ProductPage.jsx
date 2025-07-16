@@ -76,7 +76,9 @@ const ProductPage = () => {
       setCurrentPage(totalPages || 1);
     }
   }, [currentPage, totalPages]);
-
+  useEffect(() => {
+    localStorage.setItem("itemsPerPage", itemsPerPage);
+  }, [itemsPerPage]);
   useEffect(() => {
     localStorage.setItem("viewMode", viewMode);
   }, [viewMode]);
