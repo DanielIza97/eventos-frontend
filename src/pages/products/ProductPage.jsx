@@ -522,14 +522,6 @@ const ProductPage = () => {
             </tbody>
           </table>
         )}
-        <button onClick={() => toast.success("Toast manual funcionando!")}>
-          Mostrar Toast
-        </button>
-        <button
-          onClick={() => navigate("/products", { state: { created: true } })}
-        >
-          Navegar con toast
-        </button>
 
         {/* Paginación */}
         {itemsPerPage !== "all" && totalPages > 1 && (
