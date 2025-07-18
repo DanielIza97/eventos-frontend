@@ -1,7 +1,10 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ToastContainer, toast } from "react-toastify";
 import API from "../../services/api";
 import Sidebar from "../../components/common/Sidebar";
+import ModalConfirm from "../../components/common/ModalConfirm";
+import "react-toastify/dist/ReactToastify.css";
 
 const AddProductPage = () => {
   const [nombre, setNombre] = useState("");
@@ -10,23 +13,25 @@ const AddProductPage = () => {
   const [costoCompra, setCostoCompra] = useState("");
   const [costoAlquiler, setCostoAlquiler] = useState("");
   const [imagenes, setImagenes] = useState([]);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const navigate = useNavigate();
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
-    // Agrega nuevas imágenes al estado
     setImagenes((prev) => [...prev, ...files]);
   };
 
-  // Eliminar imagen seleccionada
   const eliminarImagen = (index) => {
     setImagenes((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
+    setShowConfirmModal(true);
+  };
 
+  const handleConfirmSubmit = async () => {
     try {
       const formData = new FormData();
       formData.append("nombre", nombre);
@@ -38,19 +43,22 @@ const AddProductPage = () => {
 
       await API.post("/productos", formData);
 
-      alert("Producto creado con éxito");
+      sessionStorage.setItem("productoCreado", "true");
       navigate("/products");
     } catch (err) {
       console.error("Error al crear producto:", err);
-      alert("Error al crear producto");
+      toast.error("Error al crear producto");
+    } finally {
+      setShowConfirmModal(false);
     }
   };
 
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
-
       <main className="flex-1 ml-64 p-6">
+        <ToastContainer />
+
         <div className="max-w-3xl mx-auto p-6 bg-white rounded-md shadow-md">
           <h2 className="text-3xl font-semibold mb-8 text-gray-800">
             Agregar nuevo producto
@@ -118,7 +126,10 @@ const AddProductPage = () => {
             {imagenes.length > 0 && (
               <div className="flex flex-wrap gap-4 mt-4">
                 {imagenes.map((img, idx) => (
-                  <div key={idx} className="relative w-24 h-24 bg-gray-100 rounded-md border overflow-hidden">
+                  <div
+                    key={idx}
+                    className="relative w-24 h-24 bg-gray-100 rounded-md border overflow-hidden"
+                  >
                     <img
                       src={URL.createObjectURL(img)}
                       alt={`preview-${idx}`}
@@ -146,6 +157,14 @@ const AddProductPage = () => {
           </form>
         </div>
       </main>
+
+      <ModalConfirm
+        isOpen={showConfirmModal}
+        title="Confirmar creación"
+        message="¿Estás seguro de que deseas guardar este producto?"
+        onConfirm={handleConfirmSubmit}
+        onCancel={() => setShowConfirmModal(false)}
+      />
     </div>
   );
 };

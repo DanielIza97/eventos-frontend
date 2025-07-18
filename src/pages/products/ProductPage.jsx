@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { ToastContainer, toast } from "react-toastify";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import API from "../../services/api";
 import Sidebar from "../../components/common/Sidebar";
 import ModalConfirm from "../../components/common/ModalConfirm";
+import "react-toastify/dist/ReactToastify.css";
 
 const ProductPage = () => {
   const navigate = useNavigate();
@@ -35,6 +37,18 @@ const ProductPage = () => {
   const [productToDelete, setProductToDelete] = useState(null);
 
   useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      const flag = sessionStorage.getItem("productoCreado");
+      if (flag === "true") {
+        toast.success("Producto creado exitosamente");
+        sessionStorage.removeItem("productoCreado");
+      }
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
+  }, []);
+
+  useEffect(() => {
     const fetchProducts = async () => {
       try {
         const res = await API.get("/productos");
@@ -50,8 +64,10 @@ const ProductPage = () => {
   }, []);
 
   const filteredProducts = useMemo(() => {
-    let filtered = products.filter((product) =>
-      product.nombre.toLowerCase().includes(searchTerm.toLowerCase())
+    let filtered = products.filter(
+      (product) =>
+        product.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.descripcion?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     filtered.sort((a, b) => {
@@ -76,9 +92,11 @@ const ProductPage = () => {
       setCurrentPage(totalPages || 1);
     }
   }, [currentPage, totalPages]);
+
   useEffect(() => {
     localStorage.setItem("itemsPerPage", itemsPerPage);
   }, [itemsPerPage]);
+
   useEffect(() => {
     localStorage.setItem("viewMode", viewMode);
   }, [viewMode]);
@@ -102,10 +120,10 @@ const ProductPage = () => {
     try {
       await API.delete(`/productos/${productToDelete._id}`);
       setProducts((prev) => prev.filter((p) => p._id !== productToDelete._id));
-      alert("Producto eliminado correctamente");
+      toast.success("Producto eliminado correctamente");
     } catch (error) {
       console.error("Error al eliminar:", error);
-      alert("Error al eliminar el producto");
+      toast.error("Error al eliminar el producto");
     } finally {
       setShowDeleteModal(false);
       setProductToDelete(null);
@@ -227,6 +245,7 @@ const ProductPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Sidebar />
+      <ToastContainer />
       <main className="ml-64 p-6">
         <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
           <h2 className="text-2xl font-semibold text-gray-800">Inventario</h2>
@@ -256,7 +275,7 @@ const ProductPage = () => {
         <div className="flex flex-wrap gap-4 mb-6 items-center">
           <input
             type="text"
-            placeholder="Buscar por nombre..."
+            placeholder="Buscar por nombre o descripción"
             value={searchTerm}
             onChange={handleSearchChange}
             className="w-72 border rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -503,6 +522,14 @@ const ProductPage = () => {
             </tbody>
           </table>
         )}
+        <button onClick={() => toast.success("Toast manual funcionando!")}>
+          Mostrar Toast
+        </button>
+        <button
+          onClick={() => navigate("/products", { state: { created: true } })}
+        >
+          Navegar con toast
+        </button>
 
         {/* Paginación */}
         {itemsPerPage !== "all" && totalPages > 1 && (
@@ -539,14 +566,13 @@ const ProductPage = () => {
           </div>
         )}
 
-        {showDeleteModal && (
-          <ModalConfirm
-            title="Confirmar eliminación"
-            message={`¿Está seguro de eliminar el producto "${productToDelete?.nombre}"?`}
-            onConfirm={confirmDelete}
-            onCancel={cancelDelete}
-          />
-        )}
+        <ModalConfirm
+          isOpen={showDeleteModal}
+          title="Confirmar eliminación"
+          message={`¿Está seguro de eliminar el producto "${productToDelete?.nombre}"?`}
+          onConfirm={confirmDelete}
+          onCancel={cancelDelete}
+        />
       </main>
     </div>
   );
