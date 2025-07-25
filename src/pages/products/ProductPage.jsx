@@ -353,7 +353,39 @@ const ProductPage = () => {
             getStockColor={getStockColor}
           />
         )}
-
+        {itemsPerPage !== "all" && totalPages > 1 && (
+          <div className="flex justify-center mt-6 gap-2 flex-wrap">
+            <button
+              onClick={() =>
+                setCurrentPage((prev) => (prev > 1 ? prev - 1 : prev))
+              }
+              disabled={currentPage === 1}
+              className="px-3 py-1 rounded border border-gray-300 bg-white hover:bg-gray-100 disabled:opacity-50"
+            >
+              Anterior
+            </button>
+            {[...Array(totalPages)].map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrentPage(i + 1)}
+                className={`px-3 py-1 rounded border border-gray-300 hover:bg-gray-100 ${
+                  currentPage === i + 1 ? "bg-blue-500 text-white" : "bg-white"
+                }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+            <button
+              onClick={() =>
+                setCurrentPage((prev) => (prev < totalPages ? prev + 1 : prev))
+              }
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 rounded border border-gray-300 bg-white hover:bg-gray-100 disabled:opacity-50"
+            >
+              Siguiente
+            </button>
+          </div>
+        )}
         <ModalConfirm
           isOpen={showDeleteModal}
           onConfirm={confirmDelete}

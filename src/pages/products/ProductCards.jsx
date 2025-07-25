@@ -76,12 +76,35 @@ const ProductCards = ({
                   ? `$${product.costoAlquiler.toFixed(2)}`
                   : "N/A"}
               </p>
-              <p className="text-muted" style={{ fontSize: "0.85rem" }}>
-                Creado: {dayjs(product.createdAt).format("D MMM YYYY, HH:mm")}
-              </p>
-              <p className="text-muted" style={{ fontSize: "0.85rem" }}>
-                Actualizado: {dayjs(product.updatedAt).fromNow()}
-              </p>
+
+              {/* Mejor diseño para Creado y Actualizado */}
+              <div className="mt-3 text-gray-500 text-xs space-y-1">
+                <div className="flex items-center gap-1">
+                  <span>
+                    Creado:{" "}
+                    <time
+                      dateTime={product.createdAt}
+                      title={dayjs(product.createdAt).format("LLLL")}
+                      className="underline"
+                    >
+                      {dayjs(product.createdAt).format("D MMM YYYY, HH:mm")}
+                    </time>
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span>
+                    Actualizado:{" "}
+                    <time
+                      dateTime={product.updatedAt}
+                      title={dayjs(product.updatedAt).format("LLLL")}
+                      className="underline"
+                    >
+                      {dayjs(product.updatedAt).fromNow()}
+                    </time>
+                  </span>
+                </div>
+              </div>
+
               <div className="flex gap-2 mt-4">
                 <button
                   onClick={() => navigate(`/products/edit/${product._id}`)}
