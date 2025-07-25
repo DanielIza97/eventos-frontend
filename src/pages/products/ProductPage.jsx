@@ -6,26 +6,35 @@ import autoTable from "jspdf-autotable";
 import API from "../../services/api";
 import Sidebar from "../../components/common/Sidebar";
 import ModalConfirm from "../../components/common/ModalConfirm";
+import ProductCards from "./ProductCards";
+import ProductTable from "./ProductTable";
 import "react-toastify/dist/ReactToastify.css";
+
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import "dayjs/locale/es";
+
+dayjs.extend(relativeTime);
+dayjs.locale("es");
 
 const ProductPage = () => {
   const navigate = useNavigate();
+
   const [products, setProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(() => {
     const stored = localStorage.getItem("currentPage");
     return stored ? Number(stored) : 1;
   });
-
-  const [viewMode, setViewMode] = useState(() => {
-    return localStorage.getItem("viewMode") || "cards";
-  });
-  const [sortField, setSortField] = useState(() => {
-    return localStorage.getItem("sortField") || "nombre";
-  });
-  const [sortOrder, setSortOrder] = useState(() => {
-    return localStorage.getItem("sortOrder") || "asc";
-  });
+  const [viewMode, setViewMode] = useState(
+    () => localStorage.getItem("viewMode") || "cards"
+  );
+  const [sortField, setSortField] = useState(
+    () => localStorage.getItem("sortField") || "nombre"
+  );
+  const [sortOrder, setSortOrder] = useState(
+    () => localStorage.getItem("sortOrder") || "asc"
+  );
   const [itemsPerPage, setItemsPerPage] = useState(() => {
     const stored = localStorage.getItem("itemsPerPage");
     return stored === "all" ? "all" : Number(stored) || 10;
@@ -36,18 +45,18 @@ const ProductPage = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
 
+  // Toast si se creó producto
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      const flag = sessionStorage.getItem("productoCreado");
-      if (flag === "true") {
+      if (sessionStorage.getItem("productoCreado") === "true") {
         toast.success("Producto creado exitosamente");
         sessionStorage.removeItem("productoCreado");
       }
     }, 100);
-
     return () => clearTimeout(timeoutId);
   }, []);
 
+  // Fetch productos
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -59,10 +68,10 @@ const ProductPage = () => {
         setLoading(false);
       }
     };
-
     fetchProducts();
   }, []);
 
+  // Filtrado y orden
   const filteredProducts = useMemo(() => {
     let filtered = products.filter(
       (product) =>
@@ -71,9 +80,8 @@ const ProductPage = () => {
     );
 
     filtered.sort((a, b) => {
-      const aField = a[sortField]?.toLowerCase() || "";
-      const bField = b[sortField]?.toLowerCase() || "";
-
+      const aField = (a[sortField] || "").toString().toLowerCase();
+      const bField = (b[sortField] || "").toString().toLowerCase();
       return sortOrder === "asc"
         ? aField.localeCompare(bField)
         : bField.localeCompare(aField);
@@ -88,33 +96,24 @@ const ProductPage = () => {
       : Math.ceil(filteredProducts.length / itemsPerPage);
 
   useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages || 1);
-    }
+    if (currentPage > totalPages) setCurrentPage(totalPages || 1);
   }, [currentPage, totalPages]);
 
-  useEffect(() => {
-    localStorage.setItem("itemsPerPage", itemsPerPage);
-  }, [itemsPerPage]);
+  // Guardar configuraciones
+  useEffect(
+    () => localStorage.setItem("itemsPerPage", itemsPerPage),
+    [itemsPerPage]
+  );
+  useEffect(() => localStorage.setItem("viewMode", viewMode), [viewMode]);
+  useEffect(() => localStorage.setItem("sortField", sortField), [sortField]);
+  useEffect(() => localStorage.setItem("sortOrder", sortOrder), [sortOrder]);
 
-  useEffect(() => {
-    localStorage.setItem("viewMode", viewMode);
-  }, [viewMode]);
-
-  useEffect(() => {
-    localStorage.setItem("sortField", sortField);
-  }, [sortField]);
-
-  useEffect(() => {
-    localStorage.setItem("sortOrder", sortOrder);
-  }, [sortOrder]);
-
+  // Manejo de borrado
   const handleDelete = (id) => {
     const product = products.find((p) => p._id === id);
     setProductToDelete(product);
     setShowDeleteModal(true);
   };
-
   const confirmDelete = async () => {
     if (!productToDelete) return;
     try {
@@ -129,12 +128,12 @@ const ProductPage = () => {
       setProductToDelete(null);
     }
   };
-
   const cancelDelete = () => {
     setShowDeleteModal(false);
     setProductToDelete(null);
   };
 
+  // Export CSV y PDF (igual que en tu código original)
   const handleExportCSV = () => {
     const headers = ["Nombre", "Descripción", "Cantidad", "Costo Alquiler"];
     const rows = filteredProducts.map((p) => [
@@ -177,11 +176,11 @@ const ProductPage = () => {
     doc.save("inventario.pdf");
   };
 
+  // Handlers inputs y estados
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
     setCurrentPage(1);
   };
-
   const handleItemsPerPageChange = (e) => {
     const value = e.target.value === "all" ? "all" : Number(e.target.value);
     if (value === "all" || [10, 25, 100].includes(value)) {
@@ -189,25 +188,19 @@ const ProductPage = () => {
       setCurrentPage(1);
     }
   };
-
-  const handleViewModeChange = (e) => {
-    setViewMode(e.target.value);
-  };
-
-  const handleSortFieldChange = (e) => {
-    setSortField(e.target.value);
-  };
-
-  const handleSortOrderToggle = () => {
+  const handleViewModeChange = (e) => setViewMode(e.target.value);
+  const handleSortFieldChange = (e) => setSortField(e.target.value);
+  const handleSortOrderToggle = () =>
     setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
-  };
 
+  // Color de stock
   const getStockColor = (cantidad) => {
     if (cantidad >= 10) return "text-green-600";
     if (cantidad >= 5) return "text-yellow-600";
     return "text-red-600";
   };
 
+  // Navegación imágenes
   const prevImage = (productId, imagesLength) => (e) => {
     e.stopPropagation();
     setImageIndices((prev) => {
@@ -216,7 +209,6 @@ const ProductPage = () => {
       return { ...prev, [productId]: newIndex };
     });
   };
-
   const nextImage = (productId, imagesLength) => (e) => {
     e.stopPropagation();
     setImageIndices((prev) => {
@@ -226,6 +218,7 @@ const ProductPage = () => {
     });
   };
 
+  // Productos paginados
   const displayedProducts =
     itemsPerPage === "all"
       ? filteredProducts
@@ -247,6 +240,7 @@ const ProductPage = () => {
       <Sidebar />
       <ToastContainer />
       <main className="ml-64 p-6">
+        {/* Título y botones */}
         <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
           <h2 className="text-2xl font-semibold text-gray-800">Inventario</h2>
           <div className="flex gap-2">
@@ -271,7 +265,7 @@ const ProductPage = () => {
           </div>
         </div>
 
-        {/* Controles */}
+        {/* Filtros y controles */}
         <div className="flex flex-wrap gap-4 mb-6 items-center">
           <input
             type="text"
@@ -280,7 +274,6 @@ const ProductPage = () => {
             onChange={handleSearchChange}
             className="w-72 border rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-
           <label className="flex items-center gap-2">
             Mostrar:
             <select
@@ -294,7 +287,6 @@ const ProductPage = () => {
               <option value="all">Todos</option>
             </select>
           </label>
-
           <label className="flex items-center gap-2">
             Ordenar por:
             <select
@@ -306,14 +298,12 @@ const ProductPage = () => {
               <option value="descripcion">Descripción</option>
             </select>
           </label>
-
           <button
             onClick={handleSortOrderToggle}
             className="px-3 py-1 border rounded bg-white hover:bg-gray-100"
           >
             {sortOrder === "asc" ? "Ascendente ⬆️" : "Descendente ⬇️"}
           </button>
-
           <label className="flex items-center gap-2">
             Vista:
             <select
@@ -327,7 +317,6 @@ const ProductPage = () => {
           </label>
         </div>
 
-        {/* Modal de imagen */}
         {previewImage && (
           <div
             className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50"
@@ -341,229 +330,36 @@ const ProductPage = () => {
           </div>
         )}
 
-        {/* Mostrar productos */}
         {viewMode === "cards" ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {displayedProducts.map((product) => {
-              const images = product.imagenes || [];
-              const currentImageIndex = imageIndices[product._id] || 0;
-
-              return (
-                <div
-                  key={product._id}
-                  className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col max-w-xs"
-                >
-                  {images.length > 0 && (
-                    <div
-                      className="relative w-full h-40 overflow-hidden bg-gray-200 flex items-center justify-center cursor-pointer"
-                      onClick={() =>
-                        setPreviewImage(
-                          `${process.env.REACT_APP_UPLOADS_URL}${images[currentImageIndex]}`
-                        )
-                      }
-                    >
-                      <img
-                        src={`${process.env.REACT_APP_UPLOADS_URL}${images[currentImageIndex]}`}
-                        alt={`Imagen de ${product.nombre}`}
-                        loading="lazy"
-                        className="max-w-full max-h-full object-contain"
-                      />
-                      {images.length > 1 && (
-                        <>
-                          <button
-                            onClick={prevImage(product._id, images.length)}
-                            className="absolute left-1 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full p-1 hover:bg-opacity-75"
-                            aria-label="Imagen anterior"
-                          >
-                            &#8249;
-                          </button>
-                          <button
-                            onClick={nextImage(product._id, images.length)}
-                            className="absolute right-1 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full p-1 hover:bg-opacity-75"
-                            aria-label="Imagen siguiente"
-                          >
-                            &#8250;
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="p-4 flex flex-col flex-grow">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                      {product.nombre}
-                    </h3>
-                    <p className="text-gray-700 text-sm flex-grow">
-                      {product.descripcion}
-                    </p>
-                    <p
-                      className={`mt-2 ${getStockColor(
-                        product.cantidadDisponible
-                      )}`}
-                    >
-                      <strong>Disponible:</strong> {product.cantidadDisponible}
-                    </p>
-                    <p className="text-gray-600">
-                      <strong>Alquiler:</strong>{" "}
-                      {typeof product.costoAlquiler === "number"
-                        ? `$${product.costoAlquiler.toFixed(2)}`
-                        : "N/A"}
-                    </p>
-                    <div className="flex gap-2 mt-4">
-                      <button
-                        onClick={() =>
-                          navigate(`/products/edit/${product._id}`)
-                        }
-                        className="bg-yellow-400 text-black px-3 py-1 rounded hover:bg-yellow-500"
-                      >
-                        Ver
-                      </button>
-                      <button
-                        onClick={() => handleDelete(product._id)}
-                        className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-                      >
-                        Eliminar
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <ProductCards
+            products={displayedProducts}
+            imageIndices={imageIndices}
+            setPreviewImage={setPreviewImage}
+            prevImage={prevImage}
+            nextImage={nextImage}
+            navigate={navigate}
+            handleDelete={handleDelete}
+            getStockColor={getStockColor}
+          />
         ) : (
-          <table className="w-full border-collapse border border-gray-300">
-            <thead>
-              <tr className="bg-gray-200">
-                <th className="border px-4 py-2 text-left">Imagen</th>
-                <th className="border px-4 py-2 text-left">Nombre</th>
-                <th className="border px-4 py-2 text-left">Descripción</th>
-                <th className="border px-4 py-2 text-left">Cantidad</th>
-                <th className="border px-4 py-2 text-left">Alquiler</th>
-                <th className="border px-4 py-2 text-left">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {displayedProducts.map((product) => {
-                const images = product.imagenes || [];
-                const currentImageIndex = imageIndices[product._id] || 0;
-
-                return (
-                  <tr key={product._id} className="hover:bg-gray-100">
-                    <td className="border px-4 py-2">
-                      {images.length > 0 && (
-                        <div className="relative w-20 h-20 flex items-center justify-center">
-                          <img
-                            src={`${process.env.REACT_APP_UPLOADS_URL}${images[currentImageIndex]}`}
-                            alt={`Imagen de ${product.nombre}`}
-                            className="w-16 h-16 object-contain cursor-pointer"
-                            loading="lazy"
-                            onClick={() =>
-                              setPreviewImage(
-                                `${process.env.REACT_APP_UPLOADS_URL}${images[currentImageIndex]}`
-                              )
-                            }
-                          />
-                          {images.length > 1 && (
-                            <>
-                              <button
-                                onClick={prevImage(product._id, images.length)}
-                                className="absolute left-0 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full p-1 hover:bg-opacity-75"
-                                aria-label="Imagen anterior"
-                              >
-                                &#8249;
-                              </button>
-                              <button
-                                onClick={nextImage(product._id, images.length)}
-                                className="absolute right-0 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full p-1 hover:bg-opacity-75"
-                                aria-label="Imagen siguiente"
-                              >
-                                &#8250;
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </td>
-                    <td className="border px-4 py-2">{product.nombre}</td>
-                    <td className="border px-4 py-2">{product.descripcion}</td>
-                    <td
-                      className={`border px-4 py-2 ${getStockColor(
-                        product.cantidadDisponible
-                      )}`}
-                    >
-                      {product.cantidadDisponible}
-                    </td>
-                    <td className="border px-4 py-2">
-                      {typeof product.costoAlquiler === "number"
-                        ? `$${product.costoAlquiler.toFixed(2)}`
-                        : "N/A"}
-                    </td>
-                    <td className="border px-4 py-2">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() =>
-                            navigate(`/products/edit/${product._id}`)
-                          }
-                          className="bg-yellow-400 text-black px-3 py-1 rounded hover:bg-yellow-500"
-                        >
-                          Ver
-                        </button>
-                        <button
-                          onClick={() => handleDelete(product._id)}
-                          className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-                        >
-                          Eliminar
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-
-        {/* Paginación */}
-        {itemsPerPage !== "all" && totalPages > 1 && (
-          <div className="flex justify-center mt-6 gap-2 flex-wrap">
-            <button
-              onClick={() =>
-                setCurrentPage((prev) => (prev > 1 ? prev - 1 : prev))
-              }
-              disabled={currentPage === 1}
-              className="px-3 py-1 rounded border border-gray-300 bg-white hover:bg-gray-100 disabled:opacity-50"
-            >
-              Anterior
-            </button>
-            {[...Array(totalPages)].map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setCurrentPage(i + 1)}
-                className={`px-3 py-1 rounded border border-gray-300 hover:bg-gray-100 ${
-                  currentPage === i + 1 ? "bg-blue-500 text-white" : "bg-white"
-                }`}
-              >
-                {i + 1}
-              </button>
-            ))}
-            <button
-              onClick={() =>
-                setCurrentPage((prev) => (prev < totalPages ? prev + 1 : prev))
-              }
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 rounded border border-gray-300 bg-white hover:bg-gray-100 disabled:opacity-50"
-            >
-              Siguiente
-            </button>
-          </div>
+          <ProductTable
+            products={displayedProducts}
+            imageIndices={imageIndices}
+            setPreviewImage={setPreviewImage}
+            prevImage={prevImage}
+            nextImage={nextImage}
+            navigate={navigate}
+            handleDelete={handleDelete}
+            getStockColor={getStockColor}
+          />
         )}
 
         <ModalConfirm
           isOpen={showDeleteModal}
-          title="Confirmar eliminación"
-          message={`¿Está seguro de eliminar el producto "${productToDelete?.nombre}"?`}
           onConfirm={confirmDelete}
           onCancel={cancelDelete}
+          title="Confirmar eliminación"
+          message={`¿Seguro que deseas eliminar el producto "${productToDelete?.nombre}"?`}
         />
       </main>
     </div>
