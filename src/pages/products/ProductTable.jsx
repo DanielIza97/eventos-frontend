@@ -1,4 +1,10 @@
 import React from "react";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import "dayjs/locale/es";
+
+dayjs.extend(relativeTime);
+dayjs.locale("es");
 
 const ProductTable = ({
   products,
@@ -19,6 +25,8 @@ const ProductTable = ({
           <th className="border px-4 py-2 text-left">Descripción</th>
           <th className="border px-4 py-2 text-left">Cantidad</th>
           <th className="border px-4 py-2 text-left">Alquiler</th>
+          <th className="border px-4 py-2 text-left">Creado</th>
+          <th className="border px-4 py-2 text-left">Actualizado</th>
           <th className="border px-4 py-2 text-left">Acciones</th>
         </tr>
       </thead>
@@ -77,6 +85,12 @@ const ProductTable = ({
                 {typeof product.costoAlquiler === "number"
                   ? `$${product.costoAlquiler.toFixed(2)}`
                   : "N/A"}
+              </td>
+              <td className="border px-4 py-2 text-sm text-gray-600">
+                {dayjs(product.createdAt).format("D MMM YYYY, HH:mm")}
+              </td>
+              <td className="border px-4 py-2 text-sm text-gray-600">
+                {dayjs(product.updatedAt).fromNow()}
               </td>
               <td className="border px-4 py-2">
                 <div className="flex gap-2">
