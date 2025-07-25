@@ -19,7 +19,6 @@ import {
   FiChevronRight,
   FiTrash2,
   FiFileText,
-  FiFile,
   FiChevronDown,
 } from "react-icons/fi";
 
