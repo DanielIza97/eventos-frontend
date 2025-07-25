@@ -154,6 +154,14 @@ const AddProductPage = () => {
             >
               Guardar producto
             </button>
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="w-full flex items-center justify-center gap-2 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-3 rounded-md shadow transition-colors"
+            >
+              {" "}
+              Volver
+            </button>
           </form>
         </div>
       </main>

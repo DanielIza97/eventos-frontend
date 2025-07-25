@@ -14,6 +14,14 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/es";
 
+import {
+  FiChevronLeft,
+  FiChevronRight,
+  FiTrash2,
+  FiFileText,
+  FiFile,
+} from "react-icons/fi";
+
 dayjs.extend(relativeTime);
 dayjs.locale("es");
 
@@ -22,6 +30,7 @@ const ProductPage = () => {
 
   const [products, setProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedProducts, setSelectedProducts] = useState([]);
   const [currentPage, setCurrentPage] = useState(() => {
     const stored = localStorage.getItem("currentPage");
     return stored ? Number(stored) : 1;
@@ -45,7 +54,6 @@ const ProductPage = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
 
-  // Toast si se creó producto
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (sessionStorage.getItem("productoCreado") === "true") {
@@ -56,7 +64,6 @@ const ProductPage = () => {
     return () => clearTimeout(timeoutId);
   }, []);
 
-  // Fetch productos
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -64,6 +71,7 @@ const ProductPage = () => {
         setProducts(res.data);
       } catch (error) {
         console.error("Error fetching products:", error);
+        toast.error("Error al cargar productos");
       } finally {
         setLoading(false);
       }
@@ -71,7 +79,6 @@ const ProductPage = () => {
     fetchProducts();
   }, []);
 
-  // Filtrado y orden
   const filteredProducts = useMemo(() => {
     let filtered = products.filter(
       (product) =>
@@ -99,7 +106,6 @@ const ProductPage = () => {
     if (currentPage > totalPages) setCurrentPage(totalPages || 1);
   }, [currentPage, totalPages]);
 
-  // Guardar configuraciones
   useEffect(
     () => localStorage.setItem("itemsPerPage", itemsPerPage),
     [itemsPerPage]
@@ -108,32 +114,48 @@ const ProductPage = () => {
   useEffect(() => localStorage.setItem("sortField", sortField), [sortField]);
   useEffect(() => localStorage.setItem("sortOrder", sortOrder), [sortOrder]);
 
-  // Manejo de borrado
-  const handleDelete = (id) => {
-    const product = products.find((p) => p._id === id);
-    setProductToDelete(product);
+  const handleBulkDelete = () => {
+    if (selectedProducts.length === 0) {
+      toast.info("No hay productos seleccionados para eliminar");
+      return;
+    }
+    setProductToDelete(null);
     setShowDeleteModal(true);
   };
+
   const confirmDelete = async () => {
-    if (!productToDelete) return;
     try {
-      await API.delete(`/productos/${productToDelete._id}`);
-      setProducts((prev) => prev.filter((p) => p._id !== productToDelete._id));
-      toast.success("Producto eliminado correctamente");
+      if (productToDelete) {
+        await API.delete(`/productos/${productToDelete._id}`);
+        setProducts((prev) =>
+          prev.filter((p) => p._id !== productToDelete._id)
+        );
+        toast.success("Producto eliminado correctamente");
+      } else if (selectedProducts.length > 0) {
+        await Promise.all(
+          selectedProducts.map((id) => API.delete(`/productos/${id}`))
+        );
+        setProducts((prev) =>
+          prev.filter((p) => !selectedProducts.includes(p._id))
+        );
+        toast.success("Productos eliminados correctamente");
+        setSelectedProducts([]);
+      }
     } catch (error) {
       console.error("Error al eliminar:", error);
-      toast.error("Error al eliminar el producto");
+      toast.error("Error al eliminar producto(s)");
     } finally {
       setShowDeleteModal(false);
       setProductToDelete(null);
     }
   };
+
   const cancelDelete = () => {
     setShowDeleteModal(false);
     setProductToDelete(null);
+    setSelectedProducts([]);
   };
 
-  // Export CSV y PDF (igual que en tu código original)
   const handleExportCSV = () => {
     const headers = ["Nombre", "Descripción", "Cantidad", "Costo Alquiler"];
     const rows = filteredProducts.map((p) => [
@@ -176,7 +198,6 @@ const ProductPage = () => {
     doc.save("inventario.pdf");
   };
 
-  // Handlers inputs y estados
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
     setCurrentPage(1);
@@ -193,14 +214,12 @@ const ProductPage = () => {
   const handleSortOrderToggle = () =>
     setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
 
-  // Color de stock
   const getStockColor = (cantidad) => {
-    if (cantidad >= 10) return "text-green-600";
-    if (cantidad >= 5) return "text-yellow-600";
-    return "text-red-600";
+    if (cantidad >= 10) return "text-green-600 font-semibold";
+    if (cantidad >= 5) return "text-yellow-600 font-semibold";
+    return "text-red-600 font-semibold";
   };
 
-  // Navegación imágenes
   const prevImage = (productId, imagesLength) => (e) => {
     e.stopPropagation();
     setImageIndices((prev) => {
@@ -217,8 +236,14 @@ const ProductPage = () => {
       return { ...prev, [productId]: newIndex };
     });
   };
+  const handleCheckboxChange = (productId) => {
+    setSelectedProducts((prevSelected) =>
+      prevSelected.includes(productId)
+        ? prevSelected.filter((id) => id !== productId)
+        : [...prevSelected, productId]
+    );
+  };
 
-  // Productos paginados
   const displayedProducts =
     itemsPerPage === "all"
       ? filteredProducts
@@ -229,8 +254,10 @@ const ProductPage = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <p className="text-xl text-gray-700">Cargando productos...</p>
+      <div className="flex justify-center items-center min-h-screen bg-gray-100">
+        <p className="text-xl text-gray-700 animate-pulse">
+          Cargando productos...
+        </p>
       </div>
     );
   }
@@ -238,48 +265,75 @@ const ProductPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Sidebar />
-      <ToastContainer />
+      <ToastContainer
+        position="top-right"
+        autoClose={3500}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+      />
       <main className="ml-64 p-6">
-        {/* Título y botones */}
-        <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
-          <h2 className="text-2xl font-semibold text-gray-800">Inventario</h2>
-          <div className="flex gap-2">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+          <h1 className="text-3xl font-extrabold text-gray-900">
+            Inventario de Productos
+          </h1>
+          <div className="flex flex-wrap gap-3">
             <button
               onClick={handleExportCSV}
-              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+              className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2 rounded-md shadow hover:bg-blue-700 transition"
+              aria-label="Exportar CSV"
             >
-              Exportar CSV
+              <FiFileText size={20} /> Exportar CSV
             </button>
             <button
               onClick={handleExportPDF}
-              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+              className="flex items-center gap-2 bg-red-600 text-white px-5 py-2 rounded-md shadow hover:bg-red-700 transition"
+              aria-label="Exportar PDF"
             >
-              Exportar PDF
+              <FiFile size={20} /> Exportar PDF
             </button>
             <button
               onClick={() => navigate("/products/add")}
-              className="bg-green-600 text-white px-4 py-2 rounded-md shadow hover:bg-green-700"
+              className="flex items-center gap-2 bg-green-600 text-white px-5 py-2 rounded-md shadow hover:bg-green-700 transition"
+              aria-label="Agregar nuevo producto"
             >
               Agregar nuevo producto
+            </button>
+            <button
+              onClick={handleBulkDelete}
+              disabled={selectedProducts.length === 0}
+              className="flex items-center gap-2 bg-red-500 disabled:opacity-50 text-white px-5 py-2 rounded-md shadow hover:bg-red-600 disabled:hover:bg-red-500 transition"
+              aria-label="Eliminar productos seleccionados"
+            >
+              <FiTrash2 size={20} /> Eliminar seleccionados (
+              {selectedProducts.length})
             </button>
           </div>
         </div>
 
-        {/* Filtros y controles */}
-        <div className="flex flex-wrap gap-4 mb-6 items-center">
+        {/* Filtros y opciones */}
+        <div className="flex flex-wrap items-center gap-4 mb-8 bg-white p-4 rounded-md shadow">
           <input
-            type="text"
+            type="search"
             placeholder="Buscar por nombre o descripción"
             value={searchTerm}
             onChange={handleSearchChange}
-            className="w-72 border rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-grow min-w-[220px] border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+            aria-label="Buscar productos"
           />
-          <label className="flex items-center gap-2">
+          <label className="flex items-center gap-2 whitespace-nowrap">
             Mostrar:
             <select
               value={itemsPerPage}
               onChange={handleItemsPerPageChange}
-              className="border rounded-md px-2 py-1"
+              className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+              aria-label="Cantidad de productos por página"
             >
               <option value={10}>10</option>
               <option value={25}>25</option>
@@ -287,12 +341,13 @@ const ProductPage = () => {
               <option value="all">Todos</option>
             </select>
           </label>
-          <label className="flex items-center gap-2">
+          <label className="flex items-center gap-2 whitespace-nowrap">
             Ordenar por:
             <select
               value={sortField}
               onChange={handleSortFieldChange}
-              className="border rounded-md px-2 py-1"
+              className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+              aria-label="Campo para ordenar productos"
             >
               <option value="nombre">Nombre</option>
               <option value="descripcion">Descripción</option>
@@ -300,16 +355,20 @@ const ProductPage = () => {
           </label>
           <button
             onClick={handleSortOrderToggle}
-            className="px-3 py-1 border rounded bg-white hover:bg-gray-100"
+            className="border border-gray-300 rounded-md px-3 py-2 bg-white hover:bg-gray-100 transition"
+            aria-label={`Ordenar de forma ${
+              sortOrder === "asc" ? "ascendente" : "descendente"
+            }`}
           >
             {sortOrder === "asc" ? "Ascendente ⬆️" : "Descendente ⬇️"}
           </button>
-          <label className="flex items-center gap-2">
+          <label className="flex items-center gap-2 whitespace-nowrap">
             Vista:
             <select
               value={viewMode}
               onChange={handleViewModeChange}
-              className="border rounded-md px-2 py-1"
+              className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+              aria-label="Modo de vista de productos"
             >
               <option value="cards">Tarjetas</option>
               <option value="table">Tabla</option>
@@ -317,19 +376,28 @@ const ProductPage = () => {
           </label>
         </div>
 
+        <p className="mb-4 text-gray-600 font-medium">
+          Total de productos:{" "}
+          <span className="font-semibold">{products.length}</span>
+        </p>
+
         {previewImage && (
           <div
-            className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50"
+            className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 cursor-pointer"
             onClick={() => setPreviewImage(null)}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Vista ampliada de la imagen"
           >
             <img
               src={previewImage}
-              alt="Ampliada"
-              className="max-w-full max-h-full rounded shadow-lg"
+              alt="Vista ampliada"
+              className="max-w-full max-h-full rounded-lg shadow-lg"
             />
           </div>
         )}
 
+        {/* Vista productos */}
         {viewMode === "cards" ? (
           <ProductCards
             products={displayedProducts}
@@ -338,8 +406,9 @@ const ProductPage = () => {
             prevImage={prevImage}
             nextImage={nextImage}
             navigate={navigate}
-            handleDelete={handleDelete}
             getStockColor={getStockColor}
+            selectedProducts={selectedProducts}
+            handleCheckboxChange={handleCheckboxChange}
           />
         ) : (
           <ProductTable
@@ -349,28 +418,39 @@ const ProductPage = () => {
             prevImage={prevImage}
             nextImage={nextImage}
             navigate={navigate}
-            handleDelete={handleDelete}
             getStockColor={getStockColor}
+            selectedProducts={selectedProducts}
+            handleCheckboxChange={handleCheckboxChange}
           />
         )}
+
+        {/* Paginación */}
         {itemsPerPage !== "all" && totalPages > 1 && (
-          <div className="flex justify-center mt-6 gap-2 flex-wrap">
+          <nav
+            className="flex justify-center mt-8 gap-2 flex-wrap"
+            aria-label="Paginación de productos"
+          >
             <button
               onClick={() =>
                 setCurrentPage((prev) => (prev > 1 ? prev - 1 : prev))
               }
               disabled={currentPage === 1}
-              className="px-3 py-1 rounded border border-gray-300 bg-white hover:bg-gray-100 disabled:opacity-50"
+              className="flex items-center gap-1 px-3 py-2 rounded border border-gray-300 bg-white hover:bg-gray-100 disabled:opacity-50 transition"
+              aria-label="Página anterior"
             >
+              <FiChevronLeft />
               Anterior
             </button>
             {[...Array(totalPages)].map((_, i) => (
               <button
                 key={i}
                 onClick={() => setCurrentPage(i + 1)}
-                className={`px-3 py-1 rounded border border-gray-300 hover:bg-gray-100 ${
-                  currentPage === i + 1 ? "bg-blue-500 text-white" : "bg-white"
+                className={`px-4 py-2 rounded border border-gray-300 hover:bg-gray-100 transition ${
+                  currentPage === i + 1
+                    ? "bg-blue-600 text-white font-semibold"
+                    : "bg-white"
                 }`}
+                aria-current={currentPage === i + 1 ? "page" : undefined}
               >
                 {i + 1}
               </button>
@@ -380,18 +460,25 @@ const ProductPage = () => {
                 setCurrentPage((prev) => (prev < totalPages ? prev + 1 : prev))
               }
               disabled={currentPage === totalPages}
-              className="px-3 py-1 rounded border border-gray-300 bg-white hover:bg-gray-100 disabled:opacity-50"
+              className="flex items-center gap-1 px-3 py-2 rounded border border-gray-300 bg-white hover:bg-gray-100 disabled:opacity-50 transition"
+              aria-label="Página siguiente"
             >
               Siguiente
+              <FiChevronRight />
             </button>
-          </div>
+          </nav>
         )}
+
         <ModalConfirm
           isOpen={showDeleteModal}
           onConfirm={confirmDelete}
           onCancel={cancelDelete}
           title="Confirmar eliminación"
-          message={`¿Seguro que deseas eliminar el producto "${productToDelete?.nombre}"?`}
+          message={
+            productToDelete
+              ? `¿Seguro que deseas eliminar el producto "${productToDelete.nombre}"?`
+              : `¿Seguro que deseas eliminar los ${selectedProducts.length} productos seleccionados?`
+          }
         />
       </main>
     </div>
