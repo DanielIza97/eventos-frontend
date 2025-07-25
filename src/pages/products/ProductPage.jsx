@@ -20,6 +20,7 @@ import {
   FiTrash2,
   FiFileText,
   FiFile,
+  FiChevronDown,
 } from "react-icons/fi";
 
 dayjs.extend(relativeTime);
@@ -53,6 +54,9 @@ const ProductPage = () => {
   const [imageIndices, setImageIndices] = useState({});
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
+
+  // Estado para mostrar/ocultar el menú desplegable exportar
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -283,21 +287,53 @@ const ProductPage = () => {
           <h1 className="text-3xl font-extrabold text-gray-900">
             Inventario de Productos
           </h1>
-          <div className="flex flex-wrap gap-3">
-            <button
-              onClick={handleExportCSV}
-              className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2 rounded-md shadow hover:bg-blue-700 transition"
-              aria-label="Exportar CSV"
-            >
-              <FiFileText size={20} /> Exportar CSV
-            </button>
-            <button
-              onClick={handleExportPDF}
-              className="flex items-center gap-2 bg-red-600 text-white px-5 py-2 rounded-md shadow hover:bg-red-700 transition"
-              aria-label="Exportar PDF"
-            >
-              <FiFile size={20} /> Exportar PDF
-            </button>
+          <div className="flex flex-wrap gap-3 relative">
+            {/* Botón Exportar con menú desplegable */}
+            <div className="relative inline-block text-left">
+              <button
+                onClick={() => setExportMenuOpen((open) => !open)}
+                className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2 rounded-md shadow hover:bg-blue-700 transition"
+                aria-haspopup="true"
+                aria-expanded={exportMenuOpen}
+                aria-label="Exportar inventario"
+              >
+                <FiFileText size={20} />
+                Exportar
+                <FiChevronDown />
+              </button>
+
+              {exportMenuOpen && (
+                <div
+                  className="origin-top-right absolute right-0 mt-2 w-40 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10"
+                  role="menu"
+                  aria-orientation="vertical"
+                  aria-labelledby="export-menu"
+                >
+                  <button
+                    onClick={() => {
+                      handleExportCSV();
+                      setExportMenuOpen(false);
+                    }}
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    role="menuitem"
+                  >
+                    Exportar CSV
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleExportPDF();
+                      setExportMenuOpen(false);
+                    }}
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    role="menuitem"
+                  >
+                    Exportar PDF
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Botones adicionales */}
             <button
               onClick={() => navigate("/products/add")}
               className="flex items-center gap-2 bg-green-600 text-white px-5 py-2 rounded-md shadow hover:bg-green-700 transition"

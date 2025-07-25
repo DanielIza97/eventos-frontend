@@ -22,6 +22,7 @@ const ProductTable = ({
       <table className="min-w-full border-collapse border border-gray-300 text-sm">
         <thead className="bg-gray-100 text-gray-700 uppercase text-xs">
           <tr>
+            <th className="border px-3 py-2"></th>
             <th className="border px-4 py-2 text-left">Imagen</th>
             <th className="border px-4 py-2 text-left">Nombre</th>
             <th className="border px-4 py-2 text-left">Descripción</th>
